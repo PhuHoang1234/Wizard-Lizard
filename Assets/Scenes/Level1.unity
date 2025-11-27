@@ -654,6 +654,7 @@ MonoBehaviour:
   powerManager: {fileID: 257140855}
   voiceManager: {fileID: 1665126964}
   panel: {fileID: 1031659423}
+  panelLose: {fileID: 1371400636}
   isGamePaused: 0
 --- !u!4 &151844707
 Transform:
@@ -5414,6 +5415,11 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4511979807906934223, guid: 9425813e225d79e4eb2e379e59442f2f, type: 3}
   m_PrefabInstance: {fileID: 1371400634}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1371400636 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7840157876571370925, guid: 9425813e225d79e4eb2e379e59442f2f, type: 3}
+  m_PrefabInstance: {fileID: 1371400634}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1391692950 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6781808104208275357, guid: c8371dade744afc4dab02aa53f6db4e3, type: 3}
@@ -7805,9 +7811,21 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2744183685122478538, guid: 77a30fe2747e1e646bb56f850b5e4e36, type: 3}
     - target: {fileID: 3278787484718099881, guid: 77a30fe2747e1e646bb56f850b5e4e36, type: 3}
+      propertyPath: walkSpeed
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3278787484718099881, guid: 77a30fe2747e1e646bb56f850b5e4e36, type: 3}
       propertyPath: tailPrefab
       value: 
       objectReference: {fileID: 6794633708805531384, guid: 9ed472522273e1540b58748c32050923, type: 3}
+    - target: {fileID: 3278787484718099881, guid: 77a30fe2747e1e646bb56f850b5e4e36, type: 3}
+      propertyPath: sprintSpeed
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 4079026448282610885, guid: 77a30fe2747e1e646bb56f850b5e4e36, type: 3}
+      propertyPath: m_Center.y
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6125093367913118786, guid: 77a30fe2747e1e646bb56f850b5e4e36, type: 3}
       propertyPath: m_LocalScale.y
       value: 0.96
@@ -7818,7 +7836,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6125093367913118786, guid: 77a30fe2747e1e646bb56f850b5e4e36, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.99
+      value: 0.16
       objectReference: {fileID: 0}
     - target: {fileID: 6125093367913118786, guid: 77a30fe2747e1e646bb56f850b5e4e36, type: 3}
       propertyPath: m_LocalPosition.z

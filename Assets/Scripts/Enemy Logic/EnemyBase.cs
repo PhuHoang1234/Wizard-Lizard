@@ -416,7 +416,7 @@ public abstract class EnemyBase : MonoBehaviour
         }
 
         Debug.Log("Loading game over scene...");
-        SceneManager.LoadScene(1);
+        manager.LoseGame();
     }
 
 

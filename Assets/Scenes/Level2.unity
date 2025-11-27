@@ -369,6 +369,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8601709238366418560, guid: c8371dade744afc4dab02aa53f6db4e3, type: 3}
+      propertyPath: manager
+      value: 
+      objectReference: {fileID: 1909603630}
+    - target: {fileID: 8601709238366418560, guid: c8371dade744afc4dab02aa53f6db4e3, type: 3}
       propertyPath: patrolPoints.Array.size
       value: 2
       objectReference: {fileID: 0}
@@ -2386,7 +2390,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6125093367913118786, guid: 77a30fe2747e1e646bb56f850b5e4e36, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.96
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 6125093367913118786, guid: 77a30fe2747e1e646bb56f850b5e4e36, type: 3}
       propertyPath: m_LocalPosition.z
@@ -4865,6 +4869,11 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4511979807906934223, guid: 9425813e225d79e4eb2e379e59442f2f, type: 3}
   m_PrefabInstance: {fileID: 1793099587}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1793099589 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7840157876571370925, guid: 9425813e225d79e4eb2e379e59442f2f, type: 3}
+  m_PrefabInstance: {fileID: 1793099587}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1836413916
 GameObject:
   m_ObjectHideFlags: 0
@@ -5102,7 +5111,8 @@ MonoBehaviour:
   cameraFocus: {fileID: 0}
   powerManager: {fileID: 818062103}
   voiceManager: {fileID: 522530700}
-  panel: {fileID: 0}
+  panel: {fileID: 1205776959}
+  panelLose: {fileID: 1793099589}
   isGamePaused: 0
 --- !u!4 &1909603631
 Transform:

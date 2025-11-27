@@ -8,6 +8,7 @@ public class GameManager : MonoBehaviour
     public PowerManager powerManager;
     public VoiceManager voiceManager;
     public GameObject panel;
+    public GameObject panelLose;
 
     public bool isGamePaused = false;
 
@@ -43,5 +44,11 @@ public class GameManager : MonoBehaviour
     {
         if (cameraFocus == null) cameraFocus = player;
         return cameraFocus;
+    }
+
+    public void LoseGame()
+    {
+        panelLose.SetActive(true);
+        isGamePaused = true;
     }
 }
