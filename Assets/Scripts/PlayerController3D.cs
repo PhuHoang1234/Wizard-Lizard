@@ -283,8 +283,6 @@ public class PlayerController3D : MonoBehaviour
         wasRunning = isRunning;
     }
 }
-=======
-﻿using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class PlayerController3D : MonoBehaviour
