@@ -5,14 +5,13 @@ public class BasicEnemy : EnemyBase
     protected override void Start()
     {
         base.Start();
-        visionDistance = 15f;
-        visionAngle = 39.2f;
+        visionDistance = 10f;
+        visionAngle = 40f;
         hearingDistance = 0f;
     }
 
     protected override void Update()
     {
         base.Update();
-        Debug.Log(state);
     }
 }

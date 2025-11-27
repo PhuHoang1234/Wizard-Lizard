@@ -3,13 +3,12 @@ using UnityEngine;
 
 public class Follow_player : MonoBehaviour
 {
-
-    public Transform Player;
+    public GameManager manager;
 
     // Update is called once per frame
     void Update()
     {
-        transform.position = Player.transform.position + new Vector3(0, 15, 0);
+        transform.position = manager.CameraFocus().transform.position + new Vector3(0, 15, 0);
     }
 }
 =======

@@ -4,7 +4,7 @@ public class VoiceManager : MonoBehaviour
 {
     public EnemyBase[] listenerList;
 
-    public void MakeVoice (Vector3 voicePosition)
+    public void MakeVoice(Vector3 voicePosition)
     {
         for (int i = 0; i < listenerList.Length; i++)
         {
@@ -15,11 +15,10 @@ public class VoiceManager : MonoBehaviour
         }
     }
 
-    private float distanceTo (Vector3 position1,  Vector3 position2)
+    private float distanceTo(Vector3 position1, Vector3 position2)
     {
         Vector3 dirToPlayer = position1 - position2;
         float distance = dirToPlayer.magnitude;
-        Debug.Log(distance);
         return distance;
     }
 }
