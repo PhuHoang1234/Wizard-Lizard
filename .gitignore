@@ -1,0 +1,25 @@
+# Unity generated folders (DO NOT COMMIT)
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+
+# VS / Rider / IDE stuff
+.vs/
+*.csproj
+*.sln
+*.user
+*.unityproj
+*.pidb
+*.booproj
+*.svd
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Crash logs
+sysinfo.txt
