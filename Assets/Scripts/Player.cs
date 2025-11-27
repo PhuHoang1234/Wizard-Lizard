@@ -12,6 +12,10 @@ public class Player : MonoBehaviour
     private CharacterController controller;
     private Vector3 moveDirection;
     public VoiceManager voiceManager;
+    
+    // Audio variables
+    private bool wasMoving = false;
+    private bool wasRunning = false;
 
     void Start()
     {
@@ -33,16 +37,34 @@ public class Player : MonoBehaviour
         {
             moveSpeed = runningSpeed;
             voiceManager.MakeVoice(transform.position);
+            
+            // Play running sound
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayPlayerRun();
+            }
         }
 
         if (Input.GetKeyUp(KeyCode.LeftShift))
         {
             moveSpeed = walkSpeed;
+            
+            // Stop running sound
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.StopSound("PlayerRun");
+            }
         }
 
         if (Input.GetKeyDown(KeyCode.P))
         {
             powerManager.Hide();
+            
+            // Play hide sound
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayPlayerHide();
+            }
         }
 
         if (Input.GetKeyUp(KeyCode.P))
@@ -51,5 +73,19 @@ public class Player : MonoBehaviour
         }
 
         controller.Move(moveDirection * moveSpeed * Time.deltaTime);
+        
+        // Handle movement audio
+        bool isMoving = moveDirection.magnitude > 0.1f;
+        bool isRunning = isMoving && moveSpeed > walkSpeed;
+        
+        // Play footstep sounds for walking
+        if (isMoving && !isRunning && !wasMoving && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayPlayerFootstep();
+        }
+        
+        // Update previous frame states
+        wasMoving = isMoving;
+        wasRunning = isRunning;
     }
 }

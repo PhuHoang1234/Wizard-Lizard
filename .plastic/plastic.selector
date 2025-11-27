@@ -1,4 +1,0 @@
-repository "Wizard Lizard demo/Wizard Lizard demo@3574355606984@cloud"
-  path "/"
-    br "/main"
-    co "/main"

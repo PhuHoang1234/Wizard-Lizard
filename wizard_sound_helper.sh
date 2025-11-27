@@ -1,0 +1,52 @@
+#!/bin/bash
+# Quick Wizard Sound Download Script
+
+echo "🧙‍♂️ WIZARD SOUND DOWNLOAD HELPER 🧙‍♂️"
+echo "========================================"
+echo ""
+echo "📝 STEP-BY-STEP INSTRUCTIONS:"
+echo ""
+echo "1. FREESOUND.ORG (Best Quality):"
+echo "   • Go to: https://freesound.org"
+echo "   • Create free account (1 minute)"
+echo "   • Search: 'magic spell cast'"
+echo "   • Download 3-5 sounds you like"
+echo ""
+echo "2. PIXABAY (No Account Needed):"
+echo "   • Go to: https://pixabay.com/sound-effects/"
+echo "   • Search: 'magic wizard'"
+echo "   • Click download on sounds you want"
+echo ""
+echo "3. YOUTUBE AUDIO LIBRARY (Free Music):"
+echo "   • Go to: https://www.youtube.com/audiolibrary"
+echo "   • Search: 'mystical' or 'ambient'"
+echo "   • Download background music"
+echo ""
+echo "📁 WHERE TO PUT FILES:"
+echo "   • Music files → Assets/Audio/Music/"
+echo "   • Sound effects → Assets/Audio/SFX/"
+echo ""
+echo "🎮 IN UNITY:"
+echo "   • Files will appear automatically"
+echo "   • Drag them to AudioManager component"
+echo "   • Test with number keys 1-7"
+echo ""
+echo "⚡ PRIORITY DOWNLOADS:"
+echo "   1. Magic whoosh (for stealth)"
+echo "   2. Footsteps (for walking)"  
+echo "   3. Ambient music (for background)"
+echo "   4. Treasure sound (for pickups)"
+echo "   5. Monster growl (for enemies)"
+echo ""
+echo "✅ Need help? The guide files are in Assets/Audio/ folder!"
+
+# Check if audio directory exists
+if [ -d "Assets/Audio" ]; then
+    echo ""
+    echo "✅ Audio directory found! Ready for files."
+    echo "📂 Current audio folders:"
+    ls -la Assets/Audio/
+else
+    echo ""
+    echo "❌ Audio directory not found. Run this from Unity project root."
+fi

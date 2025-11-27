@@ -48,6 +48,12 @@ public class PlayerController3D : MonoBehaviour
     float targetMaxSpeed, currentMaxSpeed, speedVelRef;
     Vector2 desiredVelXZ, velRefXZ, lastMoveDirXZ;
     float _facingVel;
+    
+    // Audio tracking
+    private bool wasMoving = false;
+    private bool wasRunning = false;
+    private float footstepTimer = 0f;
+    private float footstepInterval = 0.5f; // Time between footsteps
 
     // Casting state
     float _castTimer = 0f;
@@ -94,8 +100,20 @@ public class PlayerController3D : MonoBehaviour
             lastMoveDirXZ = desiredVelXZ.normalized;
 
         if (sprinting) voiceManager.MakeVoice(transform.position);
-        if (Input.GetKeyDown(KeyCode.P)) powerManager.Hide();
-        if (Input.GetKeyUp(KeyCode.P)) powerManager.Unhide();
+        if (Input.GetKeyDown(KeyCode.P)) 
+        {
+            powerManager.Hide();
+            // Play hide sound
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayPlayerHide();
+            }
+        }
+        
+        if (Input.GetKeyUp(KeyCode.P)) 
+        {
+            powerManager.Unhide();
+        }
 
 
         // ---- Locomotion booleans ----
@@ -105,6 +123,9 @@ public class PlayerController3D : MonoBehaviour
             bool isRunning = isMoving && sprinting;
             animator.SetBool(walkBool, isMoving && !sprinting);
             animator.SetBool(runBool, isRunning);
+            
+            // Handle footstep audio
+            HandleFootstepAudio();
         }
 
         // ---- Casting input on F ----
@@ -199,5 +220,59 @@ public class PlayerController3D : MonoBehaviour
         currentVelocity = (currentVelocity - omega * temp) * exp;
         Vector2 output = target + (change + temp) * exp;
         return output;
+    }
+    
+    private void HandleFootstepAudio()
+    {
+        bool isMoving = rb.linearVelocity.magnitude > 0.1f;
+        bool isRunning = isMoving && Input.GetKey(sprintKey);
+        
+        if (isMoving && !wasMoving)
+        {
+            // Started moving - play appropriate footstep sound
+            if (isRunning)
+            {
+                AudioManager.Instance.PlayPlayerRun();
+            }
+            else
+            {
+                AudioManager.Instance.PlayPlayerFootstep();
+            }
+            footstepTimer = 0f;
+        }
+        else if (isMoving)
+        {
+            // Continue moving - play footsteps at intervals
+            footstepTimer += Time.deltaTime;
+            float stepInterval = isRunning ? 0.3f : 0.6f; // Faster steps when running
+            
+            if (footstepTimer >= stepInterval)
+            {
+                if (isRunning)
+                {
+                    AudioManager.Instance.PlayPlayerRun();
+                }
+                else
+                {
+                    AudioManager.Instance.PlayPlayerFootstep();
+                }
+                footstepTimer = 0f;
+            }
+        }
+        
+        // Check for running state changes
+        if (isRunning && !wasRunning)
+        {
+            AudioManager.Instance.PlayPlayerRun();
+            footstepTimer = 0f;
+        }
+        else if (wasRunning && !isRunning && isMoving)
+        {
+            AudioManager.Instance.PlayPlayerFootstep();
+            footstepTimer = 0f;
+        }
+        
+        wasMoving = isMoving;
+        wasRunning = isRunning;
     }
 }

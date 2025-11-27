@@ -252,6 +252,12 @@ public abstract class EnemyBase : MonoBehaviour
             isInvestigating = false;
             isChasing = true;
             agent.speed = chaseSpeed;
+            
+            // Play enemy alert sound
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayEnemyAlert();
+            }
         }
     }
 
@@ -273,6 +279,12 @@ public abstract class EnemyBase : MonoBehaviour
             chaseTimer -= Time.deltaTime;
             PlayAnimation(RUNNING);
             agent.SetDestination(player.position);
+            
+            // Play chase sound occasionally
+            if (Random.Range(0f, 1f) < 0.01f && AudioManager.Instance != null) // 1% chance per frame
+            {
+                AudioManager.Instance.PlayEnemyChase();
+            }
 
             if (!CanSeePlayer && timeSinceLastSeen > loseSightTime)
                 GiveUpChasing();
@@ -455,15 +467,33 @@ public abstract class EnemyBase : MonoBehaviour
         Collider col = GetComponent<Collider>();
         if (col != null) col.enabled = false;
 
-        animator.SetTrigger("Die");
-        StartCoroutine(FadeAfterAnimation());
+        // Only trigger death animation if animator is properly set up
+        if (animator != null && HasParameter("Die"))
+        {
+            animator.SetTrigger("Die");
+            StartCoroutine(FadeAfterAnimation());
+        }
+        else
+        {
+            // If no animator, just fade out immediately
+            StartCoroutine(FadeAndDestroy(0.1f));
+        }
     }
 
     private IEnumerator FadeAfterAnimation()
     {
-        // Wait for death animation to play
-        yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).IsName("Die"));
-        yield return new WaitForSeconds(animator.GetCurrentAnimatorStateInfo(0).length + 0.3f);
+        // Only wait for animation if animator is available and has the state
+        if (animator != null && animator.runtimeAnimatorController != null)
+        {
+            // Wait for death animation to play
+            yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).IsName("Die"));
+            yield return new WaitForSeconds(animator.GetCurrentAnimatorStateInfo(0).length + 0.3f);
+        }
+        else
+        {
+            // If no animator, just wait a short moment
+            yield return new WaitForSeconds(0.5f);
+        }
 
         StartCoroutine(FadeAndDestroy(0.5f));
 
@@ -499,16 +529,39 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected void PlayAnimation(string animationName)
     {
+        // Add null check for animator
+        if (animator == null) return;
+        
         List<string> temp = new List<string>(animationTypes);
         if (temp.Contains(animationName))
         {
-            animator.SetBool(animationName, true);
-            temp.Remove(animationName);
-            for (int i = 0; i < temp.Count; i++)
+            // Check if animator has the required parameters
+            if (HasParameter(animationName))
             {
-                animator.SetBool(temp[i], false);
+                animator.SetBool(animationName, true);
+                temp.Remove(animationName);
+                for (int i = 0; i < temp.Count; i++)
+                {
+                    if (HasParameter(temp[i]))
+                    {
+                        animator.SetBool(temp[i], false);
+                    }
+                }
             }
         }
+    }
+
+    // Helper method to check if animator has a specific parameter
+    private bool HasParameter(string parameterName)
+    {
+        if (animator == null || animator.runtimeAnimatorController == null) return false;
+        
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.name == parameterName)
+                return true;
+        }
+        return false;
     }
 
 }

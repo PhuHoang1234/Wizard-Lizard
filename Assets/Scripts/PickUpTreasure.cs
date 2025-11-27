@@ -28,5 +28,11 @@ public class PickUpTreasure : MonoBehaviour
         }
 
         HasBeenPickedUp = true;
+        
+        // Play treasure pickup sound
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayTreasurePickup();
+        }
     }
 }
