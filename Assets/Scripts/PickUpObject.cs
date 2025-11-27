@@ -20,17 +20,18 @@ public class PickupObject : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // If you REALLY want to limit to Player later:
-        // if (!other.CompareTag("Player")) return;
+        // Only the player can pick this up
+        if (!other.CompareTag("Player"))
+            return;
 
         if (HasBeenPickedUp)
             return;
 
-        // Hide everything under this object
         foreach (var r in renderers)
             r.enabled = false;
 
-        col.enabled = false;    // stop future triggers
+        col.enabled = false;
         HasBeenPickedUp = true;
     }
+
 }
