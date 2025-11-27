@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d8815a19bba0e2428d58aed4a6a4e25, type: 3}
   m_Name: GameData
   m_EditorClassIdentifier: 
-  illusionUnlock: 0
-  castUnlock: 0
+  illusionUnlock: 1
+  castUnlock: 1
   abilityList: 0000
