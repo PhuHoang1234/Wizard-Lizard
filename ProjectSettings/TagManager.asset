@@ -2,19 +2,33 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
+<<<<<<< HEAD
   serializedVersion: 3
   tags:
   - Audio
+=======
+  serializedVersion: 2
+  tags: []
+>>>>>>> origin/Matt
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
+<<<<<<< HEAD
   - 
   - Water
   - UI
   - 
   - 
   - 
+=======
+  - Background
+  - Water
+  - UI
+  - Ground
+  - Characters
+  - Foreground
+>>>>>>> origin/Matt
   - 
   - 
   - 
@@ -42,6 +56,7 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+<<<<<<< HEAD
   m_RenderingLayers:
   - Default
   - Light Layer 1
@@ -51,3 +66,17 @@ TagManager:
   - Light Layer 5
   - Light Layer 6
   - Light Layer 7
+=======
+  - name: Background
+    uniqueID: 2285873445
+    locked: 0
+  - name: Ground
+    uniqueID: 1572615059
+    locked: 0
+  - name: Characters
+    uniqueID: 3145091307
+    locked: 0
+  - name: Foreground
+    uniqueID: 1792982689
+    locked: 0
+>>>>>>> origin/Matt
