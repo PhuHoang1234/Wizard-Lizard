@@ -42,12 +42,15 @@ public class AudioManager : MonoBehaviour
         // Singleton pattern
         if (Instance == null)
         {
+            Debug.Log("🎵 AudioManager: Initializing singleton instance...");
             Instance = this;
             DontDestroyOnLoad(gameObject);
             InitializeAudio();
+            Debug.Log("✅ AudioManager: Initialization complete!");
         }
         else
         {
+            Debug.LogWarning("⚠️ AudioManager: Duplicate instance found, destroying...");
             Destroy(gameObject);
         }
     }
@@ -82,6 +85,8 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
+        Debug.Log($"🎵 Initializing {sounds.Length} sounds in array...");
+
         foreach (SoundEffect sound in sounds)
         {
             // Check if sound is not null and has a clip
@@ -93,6 +98,16 @@ public class AudioManager : MonoBehaviour
                 sound.source.pitch = sound.pitch;
                 sound.source.loop = sound.loop;
                 sound.source.playOnAwake = false;
+                sound.source.spatialBlend = 0f; // Force 2D sound (not 3D positioned)
+                Debug.Log($"✅ Initialized sound: '{sound.name}' with clip: '{sound.clip.name}' as 2D audio");
+            }
+            else if (sound != null && sound.clip == null)
+            {
+                Debug.LogWarning($"❌ Sound '{sound.name}' has no AudioClip assigned!");
+            }
+            else if (sound == null)
+            {
+                Debug.LogWarning("❌ Found null sound in array!");
             }
         }
     }
@@ -123,17 +138,49 @@ public class AudioManager : MonoBehaviour
         }
     }
 
+    // Stop all audio
+    public void StopAllSounds()
+    {
+        // Stop music
+        StopBackgroundMusic();
+        
+        // Stop all sound effects
+        StopAllSoundEffects(playerSounds);
+        StopAllSoundEffects(enemySounds);
+        StopAllSoundEffects(environmentSounds);
+        StopAllSoundEffects(uiSounds);
+    }
+
+    void StopAllSoundEffects(SoundEffect[] sounds)
+    {
+        if (sounds == null) return;
+        
+        foreach (SoundEffect sound in sounds)
+        {
+            if (sound != null && sound.source != null)
+            {
+                sound.source.Stop();
+            }
+        }
+    }
+
     // Sound effect control
     public void PlaySound(string soundName)
     {
+        Debug.Log($"🔍 Searching for sound: '{soundName}'");
         SoundEffect sound = FindSound(soundName);
         if (sound != null && sound.source != null)
         {
             sound.source.Play();
+            Debug.Log($"✅ Playing sound: '{soundName}' at volume {sound.volume}");
+        }
+        else if (sound == null)
+        {
+            Debug.LogWarning($"❌ Sound '{soundName}' not found! Make sure it's added to AudioManager with exact name.");
         }
         else
         {
-            Debug.LogWarning($"Sound '{soundName}' not found!");
+            Debug.LogWarning($"❌ Sound '{soundName}' found but AudioSource is null!");
         }
     }
 
@@ -229,5 +276,11 @@ public class AudioManager : MonoBehaviour
     public void PlayEnemyPatrol()
     {
         PlaySound("EnemyPatrol");
+    }
+
+    public void PlayPlayerCaptured()
+    {
+        Debug.Log("🎵 PlayPlayerCaptured() called");
+        PlaySound("PlayerCaptured");
     }
 }

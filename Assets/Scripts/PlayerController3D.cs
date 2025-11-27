@@ -224,6 +224,12 @@ public class PlayerController3D : MonoBehaviour
     
     private void HandleFootstepAudio()
     {
+        // Null check for AudioManager
+        if (AudioManager.Instance == null)
+        {
+            return;
+        }
+        
         bool isMoving = rb.linearVelocity.magnitude > 0.1f;
         bool isRunning = isMoving && Input.GetKey(sprintKey);
         

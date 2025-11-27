@@ -256,7 +256,12 @@ public abstract class EnemyBase : MonoBehaviour
             // Play enemy alert sound
             if (AudioManager.Instance != null)
             {
+                Debug.Log("👹 Enemy spotted player! Playing alert sound...");
                 AudioManager.Instance.PlayEnemyAlert();
+            }
+            else
+            {
+                Debug.LogWarning("❌ Enemy: AudioManager.Instance is null - cannot play alert sound");
             }
         }
     }
@@ -283,6 +288,7 @@ public abstract class EnemyBase : MonoBehaviour
             // Play chase sound occasionally
             if (Random.Range(0f, 1f) < 0.01f && AudioManager.Instance != null) // 1% chance per frame
             {
+                Debug.Log("👹 Enemy chasing! Playing chase sound...");
                 AudioManager.Instance.PlayEnemyChase();
             }
 
@@ -383,6 +389,36 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected virtual void OnPlayerCaught()
     {
+        Debug.Log("🎵 Player captured! Playing capture sound...");
+        
+        // Play player captured sound
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayPlayerCaptured();
+            Debug.Log("🎵 Capture sound played");
+        }
+        else
+        {
+            Debug.LogWarning("❌ AudioManager.Instance is null!");
+        }
+        
+        // Wait a moment for the sound to play before changing scene
+        StartCoroutine(DelayedSceneChange());
+    }
+    
+    private System.Collections.IEnumerator DelayedSceneChange()
+    {
+        Debug.Log("⏳ Waiting for capture sound to finish...");
+        yield return new UnityEngine.WaitForSeconds(1.5f); // Wait 1.5 seconds for sound
+        
+        // Stop all audio before scene change
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopAllSounds();
+            Debug.Log("🔇 All sounds stopped");
+        }
+        
+        Debug.Log("🎯 Loading game over scene...");
         SceneManager.LoadScene(1);
     }
 

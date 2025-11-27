@@ -11,6 +11,7 @@ public class AudioTester : MonoBehaviour
     public KeyCode testTreasure = KeyCode.Alpha5;
     public KeyCode testDoor = KeyCode.Alpha6;
     public KeyCode testEnemyAlert = KeyCode.Alpha7;
+    public KeyCode testPlayerCaptured = KeyCode.Alpha8;
 
     void Start()
     {
@@ -22,6 +23,7 @@ public class AudioTester : MonoBehaviour
         Debug.Log("5 = Treasure Pickup");
         Debug.Log("6 = Door Open");
         Debug.Log("7 = Enemy Alert");
+        Debug.Log("8 = Player Captured");
         Debug.Log("Make sure AudioManager is set up first!");
     }
 
@@ -73,6 +75,12 @@ public class AudioTester : MonoBehaviour
         {
             AudioManager.Instance.PlayEnemyAlert();
             Debug.Log("Testing: Enemy Alert");
+        }
+
+        if (Input.GetKeyDown(testPlayerCaptured))
+        {
+            AudioManager.Instance.PlayPlayerCaptured();
+            Debug.Log("Testing: Player Captured");
         }
     }
 }
