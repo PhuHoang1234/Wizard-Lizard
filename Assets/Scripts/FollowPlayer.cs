@@ -3,7 +3,8 @@ using UnityEngine.SceneManagement;
 
 public class Follow_player : MonoBehaviour
 {
-    public Transform Player;
+    public GameManager manager;
+
 
     void LateUpdate()
     {
@@ -14,6 +15,6 @@ public class Follow_player : MonoBehaviour
             offset = new Vector3(0, 30, 0);
         }
 
-        transform.position = Player.position + offset;
+        transform.position = manager.CameraFocus().transform.position + offset;
     }
 }

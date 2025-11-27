@@ -24,5 +24,11 @@ public class PickUpKey : MonoBehaviour
         }
 
         HasBeenPickedUp = true;           // mark as picked up
+
+        // Play key pickup sound
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayKeyPickup();
+        }
     }
 }

@@ -5,6 +5,7 @@ public class EndLevel : MonoBehaviour
 {
     public GameObject panel;        // assign your UI Panel here in Inspector
     public string playerTag = "Player";
+    public GameData gameData;
 
     private void OnTriggerEnter(Collider other)
     {
@@ -30,6 +31,7 @@ public class EndLevel : MonoBehaviour
     {
 
      int currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
+        gameData.abilityList[currentSceneIndex - 1] = true;
         SceneManager.LoadScene(currentSceneIndex + 1);
         Time.timeScale = 1f;
 
