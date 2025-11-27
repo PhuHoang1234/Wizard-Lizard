@@ -233,8 +233,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a32c75b0250b284498d28e451f09fac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  walkSpeed: 2.8
-  sprintSpeed: 4.2
+  walkSpeed: 3
+  sprintSpeed: 8
   inputSmoothTime: 0.06
   speedBlendTime: 0.12
   moveSmoothTime: 0.1
