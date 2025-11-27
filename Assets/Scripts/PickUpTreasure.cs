@@ -22,6 +22,12 @@ public class PickUpTreasure : MonoBehaviour
 
         Debug.Log("Treasure picked up by: " + other.name);
 
+        // Play pickup sound effect
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.pickupSound);
+        }
+
         foreach (var r in renderers)
         {
             r.enabled = false;   // hide loot, top, body, whatever is under this chest

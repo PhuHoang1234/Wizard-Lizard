@@ -25,6 +25,12 @@ public class DoorDisappear : MonoBehaviour
 
     private void OpenDoor()
     {
+        // Play door opening sound
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.doorSound);
+        }
+
         // Easiest version: just hide the door
         gameObject.SetActive(false);
 

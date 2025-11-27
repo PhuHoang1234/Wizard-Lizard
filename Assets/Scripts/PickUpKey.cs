@@ -18,6 +18,12 @@ public class PickUpKey : MonoBehaviour
         if (!other.CompareTag("Player") || HasBeenPickedUp)
             return;
 
+        // Play pickup sound effect
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.pickupSound);
+        }
+
         if (rend != null)
         {
             rend.enabled = false;          // hide the key
