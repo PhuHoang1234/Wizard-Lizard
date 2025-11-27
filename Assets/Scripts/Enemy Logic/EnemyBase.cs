@@ -8,8 +8,9 @@ public abstract class EnemyBase : MonoBehaviour
 {
     // === Basic Settings ===
     public Transform[] patrolPoints;            // Patrol route points
-    public float visionAngle = 39.2f;           // Field of view angle
-    public float visionDistance = 15.0f;         // Max visible distance
+    public float visionRange = 10.0f;           // Vision range (unused)
+    public float visionAngle = 60.0f;           // Field of view angle
+    public float visionDistance = 8.0f;         // Max visible distance
     public float loseDistance = 12.0f;          // Distance to lose target
     public float moveSpeed = 2.0f;              // Normal movement speed
     public float chaseSpeed = 4.0f;             // Speed while chasing
@@ -24,8 +25,7 @@ public abstract class EnemyBase : MonoBehaviour
 
     // === Components ===
     protected NavMeshAgent agent;
-    protected Transform player;
-    public PowerManager powerManager;
+    public GameManager manager;
     protected Animator animator;                   // Animator reference
 
     // === Patrol and State Control ===
@@ -35,6 +35,7 @@ public abstract class EnemyBase : MonoBehaviour
     protected bool CanSeePlayer = false;
     protected float timeSinceLastSeen = 0f;
     protected float chaseTimer = 0f;
+    protected GameObject target;
 
     // === Investigation Logic ===
     protected bool isGoingToInvestigating = false;
@@ -94,8 +95,6 @@ public abstract class EnemyBase : MonoBehaviour
 
         SetUpAnimationTypes();
 
-        player = GameObject.FindGameObjectWithTag("Player").transform;
-
         GoToNextPatrolPoint();
     }
 
@@ -103,9 +102,11 @@ public abstract class EnemyBase : MonoBehaviour
     // === Update Loop ===
     protected virtual void Update()
     {
+        if (manager.isGamePaused) return;
+
         canBeInterrupt = true;
 
-        if(isDead) return;
+        if (isDead) return;
 
         switch (state)
         {
@@ -135,37 +136,25 @@ public abstract class EnemyBase : MonoBehaviour
     // ===================================
     protected virtual void DetectPlayer()
     {
-        if (player == null || !canBeInterrupt) return;
+        if (!canBeInterrupt) return;
 
-        Vector3 dirToPlayer = player.position - transform.position;
-        float distance = dirToPlayer.magnitude;
-
-        // Check distance and angle
-        if (distance < visionDistance)
+        if (DetectManager.DetectTarget(manager.tail, transform, visionDistance, visionAngle, false))
         {
-            float angle = Vector3.Angle(transform.forward, dirToPlayer);
+            CanSeePlayer = true;
+            agent.isStopped = false;
+            target = manager.tail;
+            timeSinceLastSeen = 0;
 
-            if (angle < visionAngle / 2f)
-            {
-                // Raycast to confirm visibility
-                if (Physics.Raycast(transform.position + Vector3.up * 0.5f, dirToPlayer.normalized, out RaycastHit hit, visionDistance))
-                {
-                    if (hit.collider.CompareTag("Player") && !powerManager.isPlayerHidding())
-                    {
-                        CanSeePlayer = true;
-                        agent.isStopped = false;
-                        timeSinceLastSeen = 0;
+            StartChase();
+        }
+        else if (DetectManager.DetectTarget(manager.player, transform, visionDistance, visionAngle, manager.powerManager.isPlayerHidding()))
+        {
+            CanSeePlayer = true;
+            agent.isStopped = false;
+            target = manager.player;
+            timeSinceLastSeen = 0;
 
-                        if(!isChasing)
-                        {
-
-                        }
-
-                        StartChase();
-                        return;
-                    }
-                }
-            }
+            StartChase();
         }
 
         // Player lost
@@ -261,18 +250,19 @@ public abstract class EnemyBase : MonoBehaviour
         agent.isStopped = false;
         isChasing = false;
         agent.speed = moveSpeed;
+        target = null;
         BackToPatrol();
     }
 
     protected virtual void Chase()
     {
-        if (player == null) return;
+        if (target.transform == null) return;
 
         if (isChasing)
         {
             chaseTimer -= Time.deltaTime;
             PlayAnimation(RUNNING);
-            agent.SetDestination(player.position);
+            agent.SetDestination(target.transform.position);
 
             if (!CanSeePlayer && timeSinceLastSeen > loseSightTime)
                 GiveUpChasing();
@@ -365,8 +355,15 @@ public abstract class EnemyBase : MonoBehaviour
     // ===================================
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (other.gameObject == manager.player)
+        {
             OnPlayerCaught();
+        }
+        else
+        {
+            target = null;
+            GiveUpChasing();
+        }
     }
 
     protected virtual void OnPlayerCaught()
@@ -414,7 +411,7 @@ public abstract class EnemyBase : MonoBehaviour
     {
         canBeInterrupt = false;
         agent.isStopped = true;
-        LookAtDir(player.position, 1000.0f);
+        if (target != null) LookAtDir(target.transform.position, 1000.0f);
         PlayAnimation(TIRED);
 
         if (idleTimer <= 0.0f)
@@ -435,12 +432,18 @@ public abstract class EnemyBase : MonoBehaviour
     // ===================================
     //           DAMAGE & DEATH
     // ===================================
-    protected virtual void TakeDamage(float damage)
+    public virtual void TakeDamage(float damage)
     {
         currentHealth -= damage;
         PlayAnimation(TAKEDAMAGE);
         if (currentHealth < 0.0f)
+        {
             Died();
+        }
+        else
+        {
+            Idle(2.0f, IdleType.BeControlled);
+        }
     }
 
     private void Died()
@@ -502,11 +505,11 @@ public abstract class EnemyBase : MonoBehaviour
         List<string> temp = new List<string>(animationTypes);
         if (temp.Contains(animationName))
         {
-            animator.SetBool(animationName, true);
+            // animator.SetBool(animationName, true);
             temp.Remove(animationName);
             for (int i = 0; i < temp.Count; i++)
             {
-                animator.SetBool(temp[i], false);
+                //animator.SetBool(temp[i], false);
             }
         }
     }

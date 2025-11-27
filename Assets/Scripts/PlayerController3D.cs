@@ -24,6 +24,8 @@ public class PlayerController3D : MonoBehaviour
     [Header("Keys")]
     public KeyCode sprintKey = KeyCode.LeftShift;
     public KeyCode castKey = KeyCode.F;           // <-- cast on F
+    public KeyCode illusionKey = KeyCode.R;       // <-- illusion on R
+    public KeyCode distractionKey = KeyCode.E;    // <-- distraction on E
 
     [Header("Animation (Locomotion)")]
     public Animator animator;
@@ -39,8 +41,17 @@ public class PlayerController3D : MonoBehaviour
     public float castCooldown = 0.20f;           // min time between casts
     public bool walkOnlyDuringCast = true;       // optional: prevent sprint while casting
 
-    public PowerManager powerManager;
-    public VoiceManager voiceManager;
+    [Header("Animation (Cast UpperBody Layer)")]
+    public string illusionTrigger = "Illusion";     // Trigger in Animator
+    public float illusionBlendIn = 0.10f;           // layer weight rise
+    public float illusionBlendOut = 0.15f;           // layer weight fall
+    public bool walkOnlyDuringIllusion = true;       // optional: prevent sprint while illusion
+
+    [Header("Magic Components")]
+    public float tailSpeed = 5.0f;
+    public float tailRange = 50.0f;
+
+    public GameManager manager;
 
     // Runtime
     Rigidbody rb;
@@ -49,9 +60,16 @@ public class PlayerController3D : MonoBehaviour
     Vector2 desiredVelXZ, velRefXZ, lastMoveDirXZ;
     float _facingVel;
 
-    // Casting state
-    float _castTimer = 0f;
-    float _nextCastTime = 0f;
+    // GameObjects for Distraction
+    public GameObject tailPrefab;
+
+    // player state for tail mode
+    protected enum PlayerState
+    {
+        Normal,
+        TailControl
+    }
+    private PlayerState state = PlayerState.Normal;
 
     void Awake()
     {
@@ -74,44 +92,57 @@ public class PlayerController3D : MonoBehaviour
 
     void Update()
     {
-        // ---- Movement input ----
-        rawInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-        if (rawInput.sqrMagnitude > 1f) rawInput.Normalize();
+        if (manager.isGamePaused) return;
 
-        filteredInput = SmoothDampVec2(filteredInput, rawInput, ref filteredInputVel,
-                                       inputSmoothTime, Mathf.Infinity, Time.deltaTime);
-
-        bool sprinting = Input.GetKey(sprintKey) && !(_castTimer > 0f && walkOnlyDuringCast);
-        targetMaxSpeed = sprinting ? sprintSpeed : walkSpeed;
-        currentMaxSpeed = Mathf.SmoothDamp(currentMaxSpeed, targetMaxSpeed, ref speedVelRef, speedBlendTime);
-
-        if (filteredInput.magnitude < minInput)
-            desiredVelXZ = Vector2.zero;
-        else
-            desiredVelXZ = filteredInput.normalized * currentMaxSpeed;
-
-        if (desiredVelXZ.sqrMagnitude > 0.0001f)
-            lastMoveDirXZ = desiredVelXZ.normalized;
-
-        if (sprinting) voiceManager.MakeVoice(transform.position);
-        if (Input.GetKeyDown(KeyCode.P)) powerManager.Hide();
-        if (Input.GetKeyUp(KeyCode.P)) powerManager.Unhide();
-
-
-        // ---- Locomotion booleans ----
-        if (animator)
+        if (state == PlayerState.Normal)
         {
-            bool isMoving = desiredVelXZ.sqrMagnitude > 0.0001f;
-            bool isRunning = isMoving && sprinting;
-            animator.SetBool(walkBool, isMoving && !sprinting);
-            animator.SetBool(runBool, isRunning);
+            // ---- Movement input ----
+            rawInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+            if (rawInput.sqrMagnitude > 1f) rawInput.Normalize();
+
+            filteredInput = SmoothDampVec2(filteredInput, rawInput, ref filteredInputVel,
+                                           inputSmoothTime, Mathf.Infinity, Time.deltaTime);
+
+            bool sprinting = Input.GetKey(sprintKey) && !(manager.powerManager.isSkilling() && walkOnlyDuringCast);
+            targetMaxSpeed = sprinting ? sprintSpeed : walkSpeed;
+            currentMaxSpeed = Mathf.SmoothDamp(currentMaxSpeed, targetMaxSpeed, ref speedVelRef, speedBlendTime);
+
+            if (filteredInput.magnitude < minInput)
+                desiredVelXZ = Vector2.zero;
+            else
+                desiredVelXZ = filteredInput.normalized * currentMaxSpeed;
+
+            if (desiredVelXZ.sqrMagnitude > 0.0001f)
+                lastMoveDirXZ = desiredVelXZ.normalized;
+
+            if (sprinting) manager.voiceManager.MakeVoice(transform.position);
+
+
+            // ---- Locomotion booleans ----
+            if (animator)
+            {
+                bool isMoving = desiredVelXZ.sqrMagnitude > 0.0001f;
+                bool isRunning = isMoving && sprinting;
+                animator.SetBool(walkBool, isMoving && !sprinting);
+                animator.SetBool(runBool, isRunning);
+            }
+
+            // ---- Distraction input on E ----
+            HandleDistractionInput();
+
+            // ---- Casting input on F ----
+            HandleCastingInput();
+
+            // ---- Illusion input on R ----
+            HandleIllusionInput();
+
+            // ---- Blend UpperBody layer weight ----
+            UpdateCastLayerWeight();
         }
-
-        // ---- Casting input on F ----
-        HandleCastingInput();
-
-        // ---- Blend UpperBody layer weight ----
-        UpdateCastLayerWeight();
+        else if (state == PlayerState.TailControl)
+        {
+            ControlTail();
+        }
     }
 
     void FixedUpdate()
@@ -152,18 +183,14 @@ public class PlayerController3D : MonoBehaviour
     {
         if (!animator) return;
 
-        if (Input.GetKeyDown(castKey) && Time.time >= _nextCastTime)
+        if (Input.GetKeyDown(castKey) && manager.powerManager.isReady("lightning"))
         {
+            if (!manager.powerManager.LightningStart(transform)) return;
             // fire the Cast trigger on the UpperBody layer
             animator.ResetTrigger(castTrigger);
             animator.SetTrigger(castTrigger);
 
-            _castTimer = castDuration;
-            _nextCastTime = Time.time + castCooldown;
         }
-
-        if (_castTimer > 0f)
-            _castTimer -= Time.deltaTime;
     }
 
     void UpdateCastLayerWeight()
@@ -171,7 +198,7 @@ public class PlayerController3D : MonoBehaviour
         if (!animator || upperBodyLayerIndex < 0 || upperBodyLayerIndex >= animator.layerCount) return;
 
         float current = animator.GetLayerWeight(upperBodyLayerIndex);
-        float target = (_castTimer > 0f) ? 1f : 0f;
+        float target = (manager.powerManager.isSkilling()) ? 1f : 0f;
 
         float blendTime = (target > current) ? castBlendIn : castBlendOut;
         float t = (blendTime <= 0f) ? 1f : 1f - Mathf.Exp(-Time.deltaTime / blendTime);
@@ -199,5 +226,71 @@ public class PlayerController3D : MonoBehaviour
         currentVelocity = (currentVelocity - omega * temp) * exp;
         Vector2 output = target + (change + temp) * exp;
         return output;
+    }
+
+    // ---- Illusion Helpers ----
+    void HandleIllusionInput()
+    {
+        if (!animator) return;
+
+        if (Input.GetKeyDown(illusionKey) && !manager.powerManager.isPlayerHidding() && manager.powerManager.isReady("illusion"))
+        {
+            if (!manager.powerManager.IllusionStart()) return;
+            // fire the Cast trigger on the UpperBody layer
+            animator.ResetTrigger(castTrigger);
+            animator.SetTrigger(castTrigger);
+        }
+
+
+        if (manager.powerManager.isPlayerHidding() && manager.powerManager.isReady("illusionDuration"))
+        {
+            manager.powerManager.IllusionEnd();
+        }
+
+    }
+
+    // ---- Distraction Helpers ----
+    void HandleDistractionInput()
+    {
+        if (Input.GetKeyUp(distractionKey) && state == PlayerState.Normal && manager.powerManager.isReady("distraction"))
+        {
+            state = PlayerState.TailControl;
+
+            Vector3 spawnPos = transform.position + transform.forward * 3f;
+            manager.tail = Instantiate(tailPrefab, spawnPos, Quaternion.identity);
+            TailObject to = manager.tail.GetComponent<TailObject>();
+            to.powerManager = manager.powerManager;
+            manager.CameraFocusChange(manager.tail);
+
+        }
+    }
+
+    void ControlTail()
+    {
+        if (manager.tail == null && state == PlayerState.Normal) return;
+        if (manager.tail == null && state == PlayerState.TailControl) state = PlayerState.Normal;
+
+        if (Input.GetKeyUp(distractionKey) && state == PlayerState.TailControl)
+        {
+            state = PlayerState.Normal;
+            ReleaseTail();
+            return;
+        }
+
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
+
+        Vector3 move = new Vector3(h, 0, v) * tailSpeed * Time.deltaTime;
+        manager.tail.transform.position += move;
+
+        Vector3 offset = manager.tail.transform.position - transform.position;
+        if (offset.magnitude > tailRange)
+            manager.tail.transform.position = transform.position + offset.normalized * tailRange;
+    }
+
+    void ReleaseTail()
+    {
+        manager.tail.GetComponent<TailObject>().ReleaseTail(manager.tail.transform.position);
+        manager.CameraFocusChange(manager.player);
     }
 }
