@@ -23,7 +23,7 @@ public class PlayerController3D : MonoBehaviour
 
     [Header("Keys")]
     public KeyCode sprintKey = KeyCode.LeftShift;
-    public KeyCode castKey = KeyCode.F;           // <-- cast on F
+    public KeyCode castKey = KeyCode.F;
 
     [Header("Animation (Locomotion)")]
     public Animator animator;
@@ -31,24 +31,25 @@ public class PlayerController3D : MonoBehaviour
     public string runBool = "IsRunning";
 
     [Header("Animation (Cast UpperBody Layer)")]
-    public string castTrigger = "Cast";             // Trigger in Animator
-    public int upperBodyLayerIndex = 1;          // Layer with Avatar Mask (arms/torso)
-    public float castDuration = 0.70f;           // seconds (match your clip)
-    public float castBlendIn = 0.10f;           // layer weight rise
-    public float castBlendOut = 0.15f;           // layer weight fall
-    public float castCooldown = 0.20f;           // min time between casts
-    public bool walkOnlyDuringCast = true;       // optional: prevent sprint while casting
+    public string castTrigger = "Cast";
+    public int upperBodyLayerIndex = 1;
+    public float castDuration = 0.7f;
+    public float castBlendIn = 0.1f;
+    public float castBlendOut = 0.15f;
+    public bool walkOnlyDuringCast = true;
 
-    // Runtime
+    [Header("Magic")]
+    public PowerManager powerManager;   // drag your PowerManager object here
+
+    // runtime
     Rigidbody rb;
     Vector2 rawInput, filteredInput, filteredInputVel;
     float targetMaxSpeed, currentMaxSpeed, speedVelRef;
     Vector2 desiredVelXZ, velRefXZ, lastMoveDirXZ;
-    float _facingVel;
+    float facingVel;
 
-    // Casting state
-    float _castTimer = 0f;
-    float _nextCastTime = 0f;
+    // casting timer
+    float castTimer = 0f;
 
     void Awake()
     {
@@ -64,23 +65,28 @@ public class PlayerController3D : MonoBehaviour
         currentMaxSpeed = walkSpeed;
         targetMaxSpeed = walkSpeed;
 
-        // start with upper-body layer off
+        if (!powerManager)
+            powerManager = FindObjectOfType<PowerManager>();
+
         if (animator && upperBodyLayerIndex >= 0 && upperBodyLayerIndex < animator.layerCount)
             animator.SetLayerWeight(upperBodyLayerIndex, 0f);
     }
 
     void Update()
     {
-        // ---- Movement input ----
+        // ---------- movement input ----------
         rawInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
         if (rawInput.sqrMagnitude > 1f) rawInput.Normalize();
 
-        filteredInput = SmoothDampVec2(filteredInput, rawInput, ref filteredInputVel,
-                                       inputSmoothTime, Mathf.Infinity, Time.deltaTime);
+        filteredInput = SmoothDampVec2(
+            filteredInput, rawInput, ref filteredInputVel,
+            inputSmoothTime, Mathf.Infinity, Time.deltaTime
+        );
 
-        bool sprinting = Input.GetKey(sprintKey) && !(_castTimer > 0f && walkOnlyDuringCast);
+        bool sprinting = Input.GetKey(sprintKey) && !(castTimer > 0f && walkOnlyDuringCast);
         targetMaxSpeed = sprinting ? sprintSpeed : walkSpeed;
-        currentMaxSpeed = Mathf.SmoothDamp(currentMaxSpeed, targetMaxSpeed, ref speedVelRef, speedBlendTime);
+        currentMaxSpeed = Mathf.SmoothDamp(currentMaxSpeed, targetMaxSpeed,
+                                           ref speedVelRef, speedBlendTime);
 
         if (filteredInput.magnitude < minInput)
             desiredVelXZ = Vector2.zero;
@@ -90,7 +96,7 @@ public class PlayerController3D : MonoBehaviour
         if (desiredVelXZ.sqrMagnitude > 0.0001f)
             lastMoveDirXZ = desiredVelXZ.normalized;
 
-        // ---- Locomotion booleans ----
+        // ---------- animation booleans ----------
         if (animator)
         {
             bool isMoving = desiredVelXZ.sqrMagnitude > 0.0001f;
@@ -99,10 +105,8 @@ public class PlayerController3D : MonoBehaviour
             animator.SetBool(runBool, isRunning);
         }
 
-        // ---- Casting input on F ----
+        // ---------- casting ----------
         HandleCastingInput();
-
-        // ---- Blend UpperBody layer weight ----
         UpdateCastLayerWeight();
     }
 
@@ -114,11 +118,15 @@ public class PlayerController3D : MonoBehaviour
         float dirDot = 1f;
         if (vXZ.sqrMagnitude > 0.0001f && desiredVelXZ.sqrMagnitude > 0.0001f)
             dirDot = Vector2.Dot(vXZ.normalized, desiredVelXZ.normalized);
+
         float boost = (dirDot < -0.25f) ? turnBoost : 1f;
 
         Vector2 targetXZ = desiredVelXZ * boost;
-        Vector2 newVelXZ = SmoothDampVec2(vXZ, targetXZ, ref velRefXZ,
-                                          moveSmoothTime, Mathf.Infinity, Time.fixedDeltaTime);
+        Vector2 newVelXZ = SmoothDampVec2(
+            vXZ, targetXZ, ref velRefXZ,
+            moveSmoothTime, Mathf.Infinity, Time.fixedDeltaTime
+        );
+
         rb.linearVelocity = new Vector3(newVelXZ.x, 0f, newVelXZ.y);
 
         if (desiredVelXZ.sqrMagnitude > 0.0001f && rb.linearVelocity.sqrMagnitude > 0.0001f)
@@ -134,36 +142,38 @@ public class PlayerController3D : MonoBehaviour
         {
             float targetYaw = Mathf.Atan2(lastMoveDirXZ.x, lastMoveDirXZ.y) * Mathf.Rad2Deg;
             float currentYaw = transform.eulerAngles.y;
-            float newYaw = Mathf.SmoothDampAngle(currentYaw, targetYaw, ref _facingVel, facingSmoothTime);
+            float newYaw = Mathf.SmoothDampAngle(currentYaw, targetYaw, ref facingVel, facingSmoothTime);
             transform.rotation = Quaternion.Euler(0f, newYaw, 0f);
         }
     }
 
-    // ---- Casting helpers ----
+    // ---------- casting helpers ----------
     void HandleCastingInput()
     {
-        if (!animator) return;
+        if (!animator || powerManager == null) return;
 
-        if (Input.GetKeyDown(castKey) && Time.time >= _nextCastTime)
+        if (Input.GetKeyDown(castKey))
         {
-            // fire the Cast trigger on the UpperBody layer
-            animator.ResetTrigger(castTrigger);
-            animator.SetTrigger(castTrigger);
-
-            _castTimer = castDuration;
-            _nextCastTime = Time.time + castCooldown;
+            // ask PowerManager to cast (handles cooldown)
+            if (powerManager.TryCastLightning(transform))
+            {
+                animator.ResetTrigger(castTrigger);
+                animator.SetTrigger(castTrigger);
+                castTimer = castDuration;
+            }
         }
 
-        if (_castTimer > 0f)
-            _castTimer -= Time.deltaTime;
+        if (castTimer > 0f)
+            castTimer -= Time.deltaTime;
     }
 
     void UpdateCastLayerWeight()
     {
-        if (!animator || upperBodyLayerIndex < 0 || upperBodyLayerIndex >= animator.layerCount) return;
+        if (!animator || upperBodyLayerIndex < 0 || upperBodyLayerIndex >= animator.layerCount)
+            return;
 
         float current = animator.GetLayerWeight(upperBodyLayerIndex);
-        float target = (_castTimer > 0f) ? 1f : 0f;
+        float target = (castTimer > 0f) ? 1f : 0f;
 
         float blendTime = (target > current) ? castBlendIn : castBlendOut;
         float t = (blendTime <= 0f) ? 1f : 1f - Mathf.Exp(-Time.deltaTime / blendTime);
@@ -172,9 +182,10 @@ public class PlayerController3D : MonoBehaviour
         animator.SetLayerWeight(upperBodyLayerIndex, next);
     }
 
-    // --- Helper: SmoothDamp for Vector2 ---
-    static Vector2 SmoothDampVec2(Vector2 current, Vector2 target, ref Vector2 currentVelocity,
-                                  float smoothTime, float maxSpeed, float deltaTime)
+    // ---------- helper: SmoothDamp for Vector2 ----------
+    static Vector2 SmoothDampVec2(
+        Vector2 current, Vector2 target, ref Vector2 currentVelocity,
+        float smoothTime, float maxSpeed, float deltaTime)
     {
         smoothTime = Mathf.Max(0.0001f, smoothTime);
         float omega = 2f / smoothTime;

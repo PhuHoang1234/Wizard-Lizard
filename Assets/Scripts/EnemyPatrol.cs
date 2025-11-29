@@ -1,112 +1,316 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class EnemyPatrol : MonoBehaviour
 {
-    [Header("Patrol Area (Back/Forth Bounds)")]
-    public float patrolXMin = -5f;
-    public float patrolXMax = 5f;
-    public float patrolZMin = -3f;
-    public float patrolZMax = 3f;
+    [Header("Patrol Path (waypoints)")]
+    public Transform[] patrolPoints;              // Assign in Inspector
     public float patrolSpeed = 2f;
+    public float patrolPointTolerance = 0.2f;     // how close is "reached"
+
+    [Header("Vision Cone (Light-based)")]
+    public Light visionLight;                     // drag your red spotlight here
+    public float visionDistance = 15f;            // if 0, uses light.range
+    public float visionAngle = 40f;               // if 0, uses light.spotAngle * 0.5f
+    public LayerMask obstacleMask = ~0;           // what blocks line of sight
 
     [Header("Chase")]
-    public Transform player;        // Drag Player GameObject here
-    public float chaseRange = 10f;
+    public Transform player;
     public float chaseSpeed = 5f;
-    public float rotationSpeed = 5f; // How fast body turns (smoother than instant)
+    public float rotationSpeed = 8f;
+    public float stopDistance = 1.2f;
+
+
+    [Header("Chase Timing")]
+    public float loseSightDelay = 0.6f;           // delay before he stops chasing
+
+    [Header("Collision")]
+    public float collisionRadius = 0.4f;   // how “fat” the goblin is for checking walls
+    public float collisionHeight = 1.0f;   // ray height above the floor
+    public float collisionSkin = 0.02f;    // tiny gap so he doesn’t clip inside walls
 
     [Header("Head Look IK")]
-    public Transform lookTarget;    // Drag Player's HEAD bone or Camera here for better eye contact
-    public float lookSpeed = 2f;    // How fast head turns to look
-    public float lookWeight = 1f;   // 0-1: How much head focuses on player (1=full)
+    public Transform lookTarget;
+    [Range(0, 1)] public float lookWeight = 1f;
 
-    private Animator anim;
-    private float patrolXTime = 0f;
-    private float patrolZTime = 0f;
-    private Vector3 targetPos;
-    private bool movingHoriz = true;
+    [Header("Animation")]
+    public Animator anim;                         // GoblinModel’s Animator
+    public string speedParam = "Speed";
+    public string isChasingParam = "IsChasing";
 
-    void Start()
+    // --- private ---
+    Rigidbody rb;
+    float baseY;
+    int currentPatrolIndex = 0;
+
+    bool HasPatrolPath => patrolPoints != null && patrolPoints.Length > 0;
+
+    // chase state
+    bool isChasing = false;
+    bool wasChasing = false;
+    float timeSinceLastSeen = 999f;               // start as "not seeing"
+
+    void Awake()
     {
-        anim = GetComponent<Animator>();
-        if (player == null) player = GameObject.FindGameObjectWithTag("Player").transform;
-        if (lookTarget == null) lookTarget = player;  // Fallback to player root if no head assigned
+        rb = GetComponent<Rigidbody>();
+        rb.useGravity = false;
+        rb.isKinematic = true;
+        rb.constraints =
+            RigidbodyConstraints.FreezeRotationX |
+            RigidbodyConstraints.FreezeRotationZ |
+            RigidbodyConstraints.FreezePositionY;
+
+        if (!anim)
+            anim = GetComponentInChildren<Animator>();
+
+        if (!player)
+        {
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if (p) player = p.transform;
+        }
+
+        if (!lookTarget && player)
+            lookTarget = player;
+
+        baseY = transform.position.y;
+
+        if (!visionLight)
+            Debug.LogWarning("EnemyPatrol: no visionLight assigned, enemy will always see player.");
     }
 
     void Update()
     {
-        float distToPlayer = Vector3.Distance(transform.position, player.position);
+        // 1) SEE / NOT SEE logic with small delay
+        bool canSeeNow = PlayerInsideLightCone();
 
-        if (distToPlayer < chaseRange)
+        if (canSeeNow)
+            timeSinceLastSeen = 0f;
+        else
+            timeSinceLastSeen += Time.deltaTime;
+
+        wasChasing = isChasing;
+        isChasing = timeSinceLastSeen < loseSightDelay;
+
+        // 2) State behaviour
+        if (isChasing)
         {
-            // CHASE: Run towards player + body rotates to face + head looks
-            anim.SetBool("IsChasing", true);
-            anim.SetFloat("Speed", chaseSpeed);
+            if (anim)
+            {
+                anim.SetBool(isChasingParam, true);
+                anim.SetFloat(speedParam, chaseSpeed);
+            }
             ChasePlayer();
         }
         else
         {
-            // PATROL: Walk back/forth + face movement direction
-            anim.SetBool("IsChasing", false);
-            anim.SetFloat("Speed", patrolSpeed);
+            if (anim)
+            {
+                anim.SetBool(isChasingParam, false);
+                anim.SetFloat(speedParam, patrolSpeed);
+            }
             Patrol();
+        }
+
+        // 3) Just stopped chasing? snap to closest patrol point
+        if (wasChasing && !isChasing)
+        {
+            SetNearestPatrolPoint();
         }
     }
 
     void LateUpdate()
     {
-        // HEAD IK: Only during chase - overrides animation for realistic looking
-        if (anim.GetBool("IsChasing"))
+        if (!anim || !lookTarget) return;
+
+        if (isChasing)
         {
-            anim.SetLookAtWeight(lookWeight, 0.3f, 1f, 0f);  // Head/Neck/Spine focus
+            anim.SetLookAtWeight(lookWeight, 0.3f, 1f, 0f);
             anim.SetLookAtPosition(lookTarget.position);
         }
         else
         {
-            anim.SetLookAtWeight(0f);  // Reset when not chasing
+            anim.SetLookAtWeight(0f);
         }
     }
 
-    void ChasePlayer()
+    // ---------------------- DETECTION ----------------------
+    bool PlayerInsideLightCone()
     {
-        // Smooth body rotation + forward movement
-        Vector3 chaseDir = (player.position - transform.position).normalized;
-        Quaternion targetRotation = Quaternion.LookRotation(chaseDir);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        if (!player) return false;
 
-        // Move forward (after rotation)
-        transform.Translate(Vector3.forward * chaseSpeed * Time.deltaTime);
-    }
-
-    void Patrol()
-    {
-        patrolXTime += Time.deltaTime;
-        patrolZTime += Time.deltaTime;
-
-        if (movingHoriz)
+        // no light = simple distance check
+        if (!visionLight)
         {
-            float xPos = Mathf.PingPong(patrolXTime * patrolSpeed * 0.5f, patrolXMax - patrolXMin) + patrolXMin;
-            targetPos = new Vector3(xPos, transform.position.y, transform.position.z);
+            Vector3 flat = player.position - transform.position;
+            flat.y = 0f;
+            return flat.magnitude < visionDistance;
+        }
+
+        Vector3 origin = visionLight.transform.position;
+        Vector3 forward = visionLight.transform.forward;
+        Vector3 toPlayer = player.position - origin;
+
+        float dist = toPlayer.magnitude;
+        float maxDist = visionDistance > 0f ? visionDistance : visionLight.range;
+        if (dist > maxDist) return false;
+
+        float halfAngle = (visionAngle > 0f ? visionAngle : visionLight.spotAngle) * 0.5f;
+        float angle = Vector3.Angle(forward, toPlayer);
+        if (angle > halfAngle) return false;
+
+        // Raycast to check walls
+        if (Physics.Raycast(origin, toPlayer.normalized, out RaycastHit hit, dist, obstacleMask, QueryTriggerInteraction.Ignore))
+        {
+            if (!hit.collider.CompareTag("Player"))
+                return false;
+        }
+
+        return true;
+    }
+    // Move toward targetPos, but stop if a wall is in the way
+    void MoveWithCollision(Vector3 targetPos, float speed)
+    {
+        Vector3 currentPos = transform.position;
+        Vector3 toTarget = targetPos - currentPos;
+        float distanceThisFrame = speed * Time.deltaTime;
+
+        if (toTarget.sqrMagnitude <= 0.0001f)
+            return;
+
+        Vector3 dir = toTarget.normalized;
+
+        // start the cast a bit above the ground
+        Vector3 origin = currentPos + Vector3.up * collisionHeight;
+
+        // check if we'll hit a wall this frame
+        bool hitWall = Physics.SphereCast(
+            origin,
+            collisionRadius,
+            dir,
+            out RaycastHit hit,
+            distanceThisFrame + collisionSkin,
+            obstacleMask,
+            QueryTriggerInteraction.Ignore
+        );
+
+        if (!hitWall)
+        {
+            // free space, move normally
+            transform.position = currentPos + dir * distanceThisFrame;
         }
         else
         {
-            float zPos = Mathf.PingPong(patrolZTime * patrolSpeed * 0.5f, patrolZMax - patrolZMin) + patrolZMin;
-            targetPos = new Vector3(transform.position.x, transform.position.y, zPos);
+            // hit a wall, move up to the wall but not through it
+            float moveDist = Mathf.Max(0f, hit.distance - collisionSkin);
+            transform.position = currentPos + dir * moveDist;
         }
+    }
 
-        if (patrolXTime > 10f)
+    // ---------------------- CHASE ----------------------
+    void ChasePlayer()
+    {
+        if (!player) return;
+
+        Vector3 currentPos = transform.position;
+        Vector3 targetPos = new Vector3(player.position.x, currentPos.y, player.position.z);
+
+        Vector3 toTarget = targetPos - currentPos;
+        float distance = toTarget.magnitude;
+
+        if (distance <= stopDistance)
         {
-            patrolXTime = 0f;
-            movingHoriz = !movingHoriz;
-            patrolZTime = 0f;
+            if (anim)
+            {
+                anim.SetBool(isChasingParam, false);
+                anim.SetFloat(speedParam, 0f);
+            }
+            return;
         }
 
-        // Face patrol direction + smooth move
-        Vector3 moveDir = (targetPos - transform.position).normalized;
-        Quaternion patrolRot = Quaternion.LookRotation(moveDir);
-        transform.rotation = Quaternion.Slerp(transform.rotation, patrolRot, rotationSpeed * Time.deltaTime);
-        transform.position = Vector3.MoveTowards(transform.position, targetPos, patrolSpeed * Time.deltaTime);
+        Vector3 dir = toTarget / Mathf.Max(distance, 0.001f);
+
+        if (dir.sqrMagnitude > 0.0001f)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(dir, Vector3.up);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRot,
+                rotationSpeed * Time.deltaTime
+            );
+        }
+
+        // 2) Move toward the player, but stop at walls
+        MoveWithCollision(targetPos, chaseSpeed);
+
+    }
+
+    // ---------------------- PATROL ----------------------
+    void Patrol()
+    {
+        if (!HasPatrolPath)
+        {
+            // no path: just idle
+            if (anim)
+            {
+                anim.SetBool(isChasingParam, false);
+                anim.SetFloat(speedParam, 0f);
+            }
+            return;
+        }
+
+        Transform patrolTarget = patrolPoints[currentPatrolIndex];
+
+        Vector3 currentPos = transform.position;
+        Vector3 targetPos = new Vector3(patrolTarget.position.x, baseY, patrolTarget.position.z);
+
+        Vector3 toTarget = targetPos - currentPos;
+        float sqrDist = toTarget.sqrMagnitude;
+
+        // reached this point → switch to next
+        if (sqrDist < patrolPointTolerance * patrolPointTolerance)
+        {
+            currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
+            return;
+        }
+
+        Vector3 dir = toTarget.normalized;
+
+        if (dir.sqrMagnitude > 0.0001f)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(dir, Vector3.up);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRot,
+                rotationSpeed * Time.deltaTime
+            );
+        }
+
+        // Move toward the waypoint, but stop at walls
+        MoveWithCollision(targetPos, patrolSpeed);
+
+    }
+
+    // pick nearest patrol point when we stop chasing
+    void SetNearestPatrolPoint()
+    {
+        if (!HasPatrolPath) return;
+
+        Vector3 currentPos = transform.position;
+        float bestSqr = float.MaxValue;
+        int bestIndex = currentPatrolIndex;
+
+        for (int i = 0; i < patrolPoints.Length; i++)
+        {
+            Vector3 p = patrolPoints[i].position;
+            p.y = currentPos.y;
+            float sqr = (p - currentPos).sqrMagnitude;
+            if (sqr < bestSqr)
+            {
+                bestSqr = sqr;
+                bestIndex = i;
+            }
+        }
+
+        currentPatrolIndex = bestIndex;
     }
 }
