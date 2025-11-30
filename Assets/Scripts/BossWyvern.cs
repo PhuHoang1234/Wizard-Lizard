@@ -1,240 +1,258 @@
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using UnityEngine;
 
-public class BossWyvern : MonoBehaviour
+public class BossWyvernSimpleAI : MonoBehaviour
 {
-    [Header("Arena Patrol Bounds")]
-    public float patrolXMin = -20f, patrolXMax = 20f;
-    public float patrolZMin = -15f, patrolZMax = 15f;
-    public float patrolSpeed = 3f;
+    [Header("References")]
+    public Transform player;              // drag Wizard here (or auto-find by tag)
+    public LayerMask obstacleMask = ~0;   // walls / pillars that block vision
+    public Animator anim;                 // optional
 
-    [Header("Chase/Aerial")]
-    public Transform player;
-    public float aggroRange = 30f;
-    public float groundChaseSpeed = 6f;
-    public float flySpeed = 8f;
-    public float diveSpeed = 15f;
-    public float flyHeight = 15f;
-    public float rotationSpeed = 5f;
+    [Header("Audio")]
+    public AudioSource roarSource;        // optional roar sound
+    public bool roarOnChaseStart = true;  // play roar when he starts chasing
 
-    [Header("Dive Crush Attack")]
-    public float diveCooldown = 8f;
-    public float crushDamage = 250f;  // Reduced: ~25% of 1000 HP - NOT instant kill!
-    public float crushRadius = 6f;
-    public LayerMask playerLayer = -1;
+    [Header("Vision")]
+    public float viewDistance = 20f;      // how far the boss can see
+    [Range(0f, 180f)]
+    public float viewAngle = 60f;         // cone angle in degrees
+    public float alertTime = 0.4f;        // see this long -> ALERT
+    public float timeToChase = 0.8f;      // see this long -> CHASE
+    public float loseAlertAfter = 1.5f;   // lose sight this long -> calm down
 
-    [Header("Head Focus")]
-    public Transform headBone;
-    public float headLookSpeed = 3f;
-    public float headLookWeight = 1f;
+    [Header("Scanning (idle spin)")]
+    public float scanRotateSpeed = 90f;   // deg/sec during idle scanning
+    public float minPause = 0.3f;
+    public float maxPause = 1.2f;
 
-    [Header("Boss Phases")]
-    public float maxHealth = 1000f;
-    [SerializeField] private float health;
+    [Header("Chase Movement")]
+    public float moveSpeed = 7f;          // run speed towards player
+    public float chaseTurnSpeed = 360f;   // turning speed while chasing
+    public float alertTurnSpeed = 120f;   // turning speed while just alert
 
-    public GameObject fireballPrefab;
-    public Transform fireballSpawn;
+    // internal state
+    bool isAlerted = false;
+    bool isChasing = false;
+    float visibleTimer = 0f;
+    float hiddenTimer = 0f;
+    Coroutine scanRoutine;
 
-    private Animator anim;
-    private int phase = 1;
-    private Vector3 patrolTarget;
-    private bool isFlying = false;
-    private float patrolTime = 0f;
-    private bool diving = false;
-    private Vector3 diveTarget;
-    private float nextDiveTime;
-    private Transform currentLookTarget;
-    private PlayerHealth playerHealth;  // Reference to player's health
-
-    void Start()
+    void Awake()
     {
-        health = maxHealth;
-        anim = GetComponent<Animator>();
-        if (player == null) player = GameObject.FindWithTag("Player").transform;
-        playerHealth = player ? player.GetComponent<PlayerHealth>() : null;
-
-        if (headBone == null)
+        if (!player)
         {
-            headBone = FindHeadBone(transform);
-            Debug.Log(headBone ? $"Head bone auto-found: {headBone.name}" : "WARNING: Assign Head Bone!");
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if (p) player = p.transform;
         }
 
-        nextDiveTime = Time.time + Random.Range(5f, 10f);
-        SetRandomPatrolTarget();
+        if (!anim)
+            anim = GetComponent<Animator>();
+    }
+
+    // This script is disabled at start.
+    // BossIntroTrigger turns it ON after the cutscene.
+    void OnEnable()
+    {
+        isAlerted = false;
+        isChasing = false;
+        visibleTimer = 0f;
+        hiddenTimer = 0f;
+
+        if (scanRoutine != null) StopCoroutine(scanRoutine);
+        scanRoutine = StartCoroutine(ScanRoutine());
+
+        if (anim)
+        {
+            anim.SetBool("IsChasing", false);
+            anim.SetFloat("Speed", 0f);
+        }
+    }
+
+    void OnDisable()
+    {
+        if (scanRoutine != null) StopCoroutine(scanRoutine);
     }
 
     void Update()
     {
-        // Check if player is alive
-        bool playerAlive = playerHealth && playerHealth.IsAlive();
+        if (!player) return;
 
-        float distToPlayer = playerAlive ? Vector3.Distance(transform.position, player.position) : 999f;
-        patrolTime += Time.deltaTime;
-        currentLookTarget = playerAlive ? player : null;
-
-        if (playerAlive && distToPlayer < aggroRange)
+        if (isChasing)
         {
-            // Aggro only if player alive
-            if (phase == 1 && health > maxHealth * 0.75f)
-            {
-                GroundChase();
-            }
-            else if (phase == 2 || health <= maxHealth * 0.75f)
-            {
-                AerialPhase();
-                if (Time.time > nextDiveTime)
-                {
-                    DiveAttack();
-                    nextDiveTime = Time.time + (phase == 3 ? Random.Range(4f, 6f) : Random.Range(7f, 12f));
-                }
-            }
-            else
-            {
-                EnragePhase();
-            }
+            ChasePlayer();
+            return;
+        }
+
+        bool canSee = CanSeePlayer();
+
+        if (canSee)
+        {
+            visibleTimer += Time.deltaTime;
+            hiddenTimer = 0f;
         }
         else
         {
-            // Patrol or idle if player dead/out of range
-            PatrolArena();
+            hiddenTimer += Time.deltaTime;
+            visibleTimer = 0f;
         }
 
-        // Phase transitions (only if player alive)
-        if (playerAlive && health <= maxHealth * 0.75f && phase < 2)
+        // enter alert state
+        if (!isAlerted && visibleTimer >= alertTime)
+            isAlerted = true;
+
+        // after being seen long enough → chase
+        if (isAlerted && visibleTimer >= timeToChase)
         {
-            phase = 2;
-            TakeOff();
-        }
-        if (playerAlive && health <= maxHealth * 0.25f) phase = 3;
-    }
-
-    void LateUpdate()
-    {
-        if (headBone && currentLookTarget)
-        {
-            Vector3 lookDir = (currentLookTarget.position - headBone.position).normalized;
-            Quaternion targetHeadRot = Quaternion.LookRotation(lookDir);
-            headBone.rotation = Quaternion.Slerp(headBone.rotation, targetHeadRot, headLookSpeed * Time.deltaTime * headLookWeight);
-        }
-    }
-
-    void GroundChase()
-    {
-        anim.SetFloat("Speed", groundChaseSpeed);
-        Vector3 dir = (player.position - transform.position).normalized;
-        dir.y = 0;
-        Quaternion targetRot = Quaternion.LookRotation(dir);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
-        transform.Translate(Vector3.forward * groundChaseSpeed * Time.deltaTime, Space.Self);
-    }
-
-    void AerialPhase()
-    {
-        anim.SetBool("IsFlying", true);
-        anim.SetFloat("FlySpeed", diving ? diveSpeed : flySpeed);
-
-        Vector3 target = diving ? diveTarget : (player.position + Vector3.up * flyHeight);
-        Vector3 dir = (target - transform.position).normalized;
-        Quaternion targetRot = Quaternion.LookRotation(dir);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
-        transform.Translate(Vector3.forward * (diving ? diveSpeed : flySpeed) * Time.deltaTime, Space.Self);
-
-        if (diving && Vector3.Distance(transform.position, diveTarget) < 4f)
-        {
-            diving = false;
-            CrushImpact(diveTarget);
-            patrolTarget = transform.position + Vector3.up * 25f + (Vector3.right + Vector3.forward) * Random.Range(10f, 20f);
-        }
-    }
-
-    void EnragePhase()
-    {
-        DiveAttack();
-    }
-
-    void PatrolArena()
-    {
-        anim.SetBool("IsFlying", false);
-        anim.SetFloat("Speed", patrolSpeed);
-        anim.SetFloat("FlySpeed", 0);
-
-        if (Vector3.Distance(transform.position, patrolTarget) < 3f || patrolTime > 12f)
-        {
-            SetRandomPatrolTarget();
+            isChasing = true;
+            if (scanRoutine != null) StopCoroutine(scanRoutine);
+            OnChaseStart();
         }
 
-        Vector3 dir = (patrolTarget - transform.position).normalized;
-        dir.y = 0;
-        Quaternion targetRot = Quaternion.LookRotation(dir);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
-        transform.Translate(Vector3.forward * patrolSpeed * Time.deltaTime, Space.Self);
+        // if we were alert but lost sight long enough → calm down
+        if (isAlerted && hiddenTimer >= loseAlertAfter)
+            isAlerted = false;
+
+        // while alert (but not yet chasing), slowly track towards player
+        if (isAlerted && !isChasing)
+            RotateSlowlyTowardPlayer();
     }
 
-    void SetRandomPatrolTarget()
+    // ───────────────────── Scanning / idle spin ─────────────────────
+    IEnumerator ScanRoutine()
     {
-        float x = Random.Range(patrolXMin, patrolXMax);
-        float z = Random.Range(patrolZMin, patrolZMax);
-        patrolTarget = new Vector3(x, 0f, z);
-        patrolTime = 0f;
-    }
-
-    void DiveAttack()
-    {
-        diving = true;
-        diveTarget = player.position;
-        diveTarget.y = 0f;
-        anim.SetFloat("FlySpeed", diveSpeed);
-    }
-
-    void CrushImpact(Vector3 impactPos)
-    {
-        // Only damage if player alive & in radius
-        if (playerHealth && playerHealth.IsAlive())
+        // Just spins in random directions while not chasing.
+        while (!isChasing)
         {
-            Collider[] hits = Physics.OverlapSphere(impactPos, crushRadius, playerLayer);
-            foreach (Collider hit in hits)
+            float targetYaw = Random.Range(0f, 360f);
+            Quaternion targetRot = Quaternion.Euler(0f, targetYaw, 0f);
+
+            while (!isChasing &&
+                   Quaternion.Angle(transform.rotation, targetRot) > 0.5f)
             {
-                if (hit.CompareTag("Player"))
-                {
-                    playerHealth.TakeDamage(crushDamage);
-                    Debug.Log($"Wyvern CRUSH HIT! Player HP: {playerHealth.currentHealth}/{playerHealth.maxHealth}");
-                }
+                transform.rotation = Quaternion.RotateTowards(
+                    transform.rotation,
+                    targetRot,
+                    scanRotateSpeed * Time.deltaTime
+                );
+                yield return null;
+            }
+
+            float pauseTime = Random.Range(minPause, maxPause);
+            float t = 0f;
+            while (!isChasing && t < pauseTime)
+            {
+                t += Time.deltaTime;
+                yield return null;
             }
         }
-        // Effects: Particles/shake/roar
     }
 
-    Transform FindHeadBone(Transform parent)
+    // ───────────────────── Chase ─────────────────────
+    void OnChaseStart()
     {
-        foreach (Transform child in parent)
+        if (anim)
         {
-            if (child.name.ToLower().Contains("head") || child.name.ToLower().Contains("neck")) return child;
-            Transform found = FindHeadBone(child);
-            if (found) return found;
+            anim.SetBool("IsChasing", true);  // optional
+            anim.SetFloat("Speed", moveSpeed);
         }
-        return null;
-    }
 
-    public void TakeOff() { anim.SetTrigger("TakeOff"); isFlying = true; }
-    public void SpawnFireball()
-    {
-        if (fireballPrefab && fireballSpawn)
+        // Optional extra roar when he aggroes
+        if (roarOnChaseStart && roarSource != null)
         {
-            GameObject fb = Instantiate(fireballPrefab, fireballSpawn.position, fireballSpawn.rotation);
-            fb.GetComponent<Rigidbody>().AddForce(transform.forward * 25f + Vector3.up * 5f, ForceMode.Impulse);
+            // use PlayOneShot or just Play depending on how you set it up
+            if (roarSource.clip != null)
+                roarSource.Play();
         }
     }
 
-    public void TakeDamage(float dmg)
+    void ChasePlayer()
     {
-        health -= dmg;
-        if (health <= 0) Die();
+        Vector3 toPlayer = player.position - transform.position;
+        toPlayer.y = 0f;
+
+        if (toPlayer.sqrMagnitude < 0.0001f)
+            return;
+
+        Vector3 dir = toPlayer.normalized;
+
+        Quaternion targetRot = Quaternion.LookRotation(dir);
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation,
+            targetRot,
+            chaseTurnSpeed * Time.deltaTime
+        );
+
+        transform.Translate(Vector3.forward * moveSpeed * Time.deltaTime, Space.Self);
     }
 
-    void Die()
+    void RotateSlowlyTowardPlayer()
     {
-        anim.SetTrigger("Die");
-        // Boss defeated logic
+        Vector3 toPlayer = player.position - transform.position;
+        toPlayer.y = 0f;
+        if (toPlayer.sqrMagnitude < 0.0001f) return;
+
+        Quaternion targetRot = Quaternion.LookRotation(toPlayer.normalized);
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation,
+            targetRot,
+            alertTurnSpeed * Time.deltaTime
+        );
+    }
+
+    // ───────────────────── Vision ─────────────────────
+    bool CanSeePlayer()
+    {
+        Vector3 origin = transform.position + Vector3.up * 1.5f; // eye height
+        Vector3 toPlayer = player.position - origin;
+        float distance = toPlayer.magnitude;
+        if (distance > viewDistance) return false;
+
+        Vector3 dir = toPlayer.normalized;
+        dir.y = 0f;
+        float angle = Vector3.Angle(transform.forward, dir);
+        if (angle > viewAngle * 0.5f) return false;
+
+        // Raycast to see if a wall is blocking
+        if (Physics.Raycast(origin, dir, distance, obstacleMask))
+            return false;
+
+        return true;
+    }
+
+    // ───────────────────── Kill player on touch ─────────────────────
+    void KillPlayer(GameObject playerObj)
+    {
+        // Your player already has CharacterDeath, so this is safe.
+        CharacterDeath cd = playerObj.GetComponent<CharacterDeath>();
+        if (cd != null)
+        {
+            cd.Die();
+            return;
+        }
+    }
+
+    void OnCollisionEnter(Collision other)
+    {
+        if (!isChasing) return;
+        if (other.gameObject.CompareTag("Player"))
+            KillPlayer(other.gameObject);
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (!isChasing) return;
+        if (other.CompareTag("Player"))
+            KillPlayer(other.gameObject);
+    }
+
+    // (optional) vision gizmo
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Vector3 origin = transform.position + Vector3.up * 1.5f;
+        Vector3 leftDir = Quaternion.Euler(0f, -viewAngle * 0.5f, 0f) * transform.forward;
+        Vector3 rightDir = Quaternion.Euler(0f, viewAngle * 0.5f, 0f) * transform.forward;
+        Gizmos.DrawLine(origin, origin + leftDir * viewDistance);
+        Gizmos.DrawLine(origin, origin + rightDir * viewDistance);
     }
 }

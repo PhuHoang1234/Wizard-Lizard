@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,7 +7,7 @@ public class CharacterDeath : MonoBehaviour
     [Header("Death Options")]
     public float destroyDelay = 3f;  // Time corpse stays (0 = instant destroy)
     public bool enableRagdoll = false;  // Pro: Physics flop after anim
-
+    public GameObject panel;
     private Animator anim;
     private Collider mainCollider;
     private Rigidbody rb;
@@ -29,19 +29,19 @@ public class CharacterDeath : MonoBehaviour
 
         // Play death + freeze
         anim.SetTrigger("Die");
-        if (mainCollider) mainCollider.enabled = false;  // No more hits
-        if (rb) rb.isKinematic = true;  // Stop physics/momentum
+        if (mainCollider) mainCollider.enabled = false;
+        if (rb) rb.isKinematic = true;
 
-        // Disable scripts (patrol, input, AI)
         foreach (MonoBehaviour script in movementScripts)
         {
             if (script != this && script != anim) script.enabled = false;
         }
 
-        // Cleanup
+        // Cleanup (same as before)
         if (enableRagdoll)
         {
-            Invoke(nameof(EnableRagdoll), anim.GetCurrentAnimatorStateInfo(0).length - 0.2f);  // End of anim
+            Invoke(nameof(EnableRagdoll),
+                anim.GetCurrentAnimatorStateInfo(0).length - 0.2f);
         }
         else if (destroyDelay > 0)
         {
@@ -51,7 +51,19 @@ public class CharacterDeath : MonoBehaviour
         {
             Destroy(gameObject);
         }
+
+        // Wait 2 seconds, THEN show panel + pause
+        Invoke(nameof(ShowDeathPanel), 2.5f);
     }
+
+    void ShowDeathPanel()
+    {
+        if (panel != null)
+            panel.SetActive(true);
+
+        Time.timeScale = 0f;
+    }
+
 
     void DestroyCorpse()
     {
@@ -68,7 +80,7 @@ public class CharacterDeath : MonoBehaviour
     // TRIGGER DEATH ON HIT (one-tap!)
     void OnCollisionEnter(Collision other)
     {
-        if (other.gameObject.CompareTag("Enemy") || other.gameObject.CompareTag("PlayerProjectile"))
+        if (other.gameObject.CompareTag("Enemy"))
         {
             Die();
         }
@@ -76,9 +88,10 @@ public class CharacterDeath : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Enemy") || other.CompareTag("PlayerProjectile"))
+        if (other.CompareTag("Enemy"))
         {
             Die();
         }
     }
+
 }

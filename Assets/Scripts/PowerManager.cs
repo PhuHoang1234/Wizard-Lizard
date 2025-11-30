@@ -13,9 +13,18 @@ public class PowerManager : MonoBehaviour
     // internal timer for cooldown
     float lightningTimer = 0f;
 
+    [Header("Unlocks")]
+    public bool hasLightning = false;         // starts locked
+
+    void Start()
+    {
+        // hide line at start
+        if (lightningLine != null)
+            lightningLine.enabled = false;
+    }
+
     void Update()
     {
-        // count down the cooldown
         if (lightningTimer > 0f)
             lightningTimer -= Time.deltaTime;
     }
@@ -23,10 +32,11 @@ public class PowerManager : MonoBehaviour
     // Can we cast right now?
     public bool CanCastLightning()
     {
-        return lightningTimer <= 0f;
+        // must be unlocked AND off cooldown
+        return hasLightning && lightningTimer <= 0f;
     }
 
-    // Called by the player – returns true if the cast actually happened
+    // Called by PlayerController3D when you press castKey (F)
     public bool TryCastLightning(Transform caster)
     {
         if (!CanCastLightning())
@@ -35,6 +45,13 @@ public class PowerManager : MonoBehaviour
         lightningTimer = lightningCooldown;
         CastLightning(caster);
         return true;
+    }
+
+    // 🔓 called from pickup trigger
+    public void UnlockLightning()
+    {
+        hasLightning = true;
+        Debug.Log("Lightning unlocked!");
     }
 
     // ---------- main lightning logic ----------
@@ -46,43 +63,53 @@ public class PowerManager : MonoBehaviour
         float bestAngle = aimAssistAngle;
         Transform bestTarget = null;
 
-        // 1) search for enemies in a sphere
+        // 1) search for enemies in a sphere around the player
         Collider[] hits = Physics.OverlapSphere(origin, lightningRange);
         foreach (var col in hits)
         {
-            if (!col.CompareTag("Enemy")) continue;
+            Transform root = col.transform.root;
+            if (!col.CompareTag("Enemy") && !root.CompareTag("Enemy"))
+                continue;
 
-            Vector3 dirToEnemy = (col.transform.position - origin).normalized;
+            Vector3 dirToEnemy = (root.position - origin);
             float angle = Vector3.Angle(caster.forward, dirToEnemy);
 
             if (angle < bestAngle)
             {
-                // simple line-of-sight check
-                if (Physics.Raycast(origin, dirToEnemy, out RaycastHit rh, lightningRange))
+                if (Physics.Raycast(origin, dirToEnemy.normalized, out RaycastHit rh, lightningRange))
                 {
-                    if (rh.collider.transform == col.transform)
+                    if (rh.collider.transform.root == root)
                     {
                         bestAngle = angle;
-                        bestTarget = col.transform;
+                        bestTarget = root;
                     }
                 }
             }
         }
 
-        // 2) if we found something, aim at it
+        // 2) if we found an enemy, aim at it and KILL it
         if (bestTarget != null)
         {
-            direction = (bestTarget.position - origin).normalized;
+            Vector3 toTarget = bestTarget.position - origin;
+            direction = toTarget.normalized;
+
+            Vector3 endPos = bestTarget.position;
+            if (Physics.Raycast(origin, direction, out RaycastHit finalHit, lightningRange))
+            {
+                endPos = finalHit.point;
+            }
+
+            DrawLightning(origin, endPos);
+
+            // NEW:
+            HandleEnemyKilled(bestTarget);
+            return;
         }
 
-        // 3) final raycast and draw the line
-        if (Physics.Raycast(origin, direction, out RaycastHit finalHit, lightningRange))
+        // 3) no enemy in cone: just shoot forward and draw line
+        if (Physics.Raycast(origin, direction, out RaycastHit hitInfo, lightningRange))
         {
-            DrawLightning(origin, finalHit.point);
-
-            // later you can damage an enemy here if you want:
-            // var enemy = finalHit.collider.GetComponent<EnemyHealth>();
-            // if (enemy) enemy.TakeDamage(damage);
+            DrawLightning(origin, hitInfo.point);
         }
         else
         {
@@ -92,7 +119,11 @@ public class PowerManager : MonoBehaviour
 
     void DrawLightning(Vector3 start, Vector3 end)
     {
-        if (!lightningLine) return;
+        if (!lightningLine)
+        {
+            Debug.LogWarning("DrawLightning: lightningLine is not assigned!");
+            return;
+        }
 
         lightningLine.enabled = true;
         lightningLine.positionCount = 2;
@@ -108,4 +139,46 @@ public class PowerManager : MonoBehaviour
         if (lightningLine)
             lightningLine.enabled = false;
     }
+    void HandleEnemyKilled(Transform enemyRoot)
+    {
+        if (enemyRoot == null) return;
+
+        Debug.Log("HandleEnemyKilled on " + enemyRoot.name);
+
+        // 1) stop their AI / movement
+        var patrol = enemyRoot.GetComponentInChildren<EnemyPatrol>();
+        if (patrol) patrol.enabled = false;
+
+        var rb = enemyRoot.GetComponent<Rigidbody>();
+        if (rb)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.isKinematic = true;
+        }
+
+        // ❗ 2) disable goblin colliders so he can no longer kill the player
+        Collider[] cols = enemyRoot.GetComponentsInChildren<Collider>();
+        foreach (var c in cols)
+        {
+            c.enabled = false;
+        }
+        // (optional extra safety)
+        enemyRoot.tag = "Untagged";
+
+        // 3) play death animation on their Animator
+        Animator enemyAnim = enemyRoot.GetComponentInChildren<Animator>();
+        if (enemyAnim != null)
+        {
+            enemyAnim.SetTrigger("Die");   // trigger must be called "Die"
+        }
+        else
+        {
+            Debug.LogWarning("No Animator found on enemy " + enemyRoot.name);
+        }
+
+        // 4) delete goblin after delay so anim can finish
+        Destroy(enemyRoot.gameObject, 2.5f);
+    }
+
+
 }

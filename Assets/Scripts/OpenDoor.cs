@@ -1,15 +1,21 @@
 using UnityEngine;
 
-public class PickedUpKey : MonoBehaviour
+[RequireComponent(typeof(Collider))]
+public class OpenDoor : MonoBehaviour
 {
-    private Renderer rend;
-
-    // Other scripts can read this if they want
+    // Other scripts (like the door) can read this
     public bool HasBeenPickedUp { get; private set; }
+
+    private Renderer[] renderers;
+    private Collider col;
 
     void Awake()
     {
-        rend = GetComponent<Renderer>();   // or MeshRenderer, both are fine
+        // get all renderers on this object + children
+        renderers = GetComponentsInChildren<Renderer>();
+
+        col = GetComponent<Collider>();
+        col.isTrigger = true;   // make sure it’s a trigger
     }
 
     private void OnTriggerEnter(Collider other)
@@ -18,11 +24,13 @@ public class PickedUpKey : MonoBehaviour
         if (!other.CompareTag("Player") || HasBeenPickedUp)
             return;
 
-        if (rend != null)
-        {
-            rend.enabled = false;          // hide the key
-        }
+        // hide the key visually
+        foreach (var r in renderers)
+            r.enabled = false;
 
-        HasBeenPickedUp = true;           // mark as picked up
+        // disable collider so we don’t trigger again
+        col.enabled = false;
+
+        HasBeenPickedUp = true; // mark as picked up
     }
 }

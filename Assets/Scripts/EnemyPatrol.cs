@@ -20,14 +20,13 @@ public class EnemyPatrol : MonoBehaviour
     public float rotationSpeed = 8f;
     public float stopDistance = 1.2f;
 
-
     [Header("Chase Timing")]
     public float loseSightDelay = 0.6f;           // delay before he stops chasing
 
     [Header("Collision")]
-    public float collisionRadius = 0.4f;   // how “fat” the goblin is for checking walls
-    public float collisionHeight = 1.0f;   // ray height above the floor
-    public float collisionSkin = 0.02f;    // tiny gap so he doesn’t clip inside walls
+    public float collisionRadius = 0.4f;          // how “fat” the goblin is for checking walls
+    public float collisionHeight = 1.0f;          // ray height above the floor
+    public float collisionSkin = 0.02f;           // tiny gap so he doesn’t clip inside walls
 
     [Header("Head Look IK")]
     public Transform lookTarget;
@@ -49,6 +48,12 @@ public class EnemyPatrol : MonoBehaviour
     bool isChasing = false;
     bool wasChasing = false;
     float timeSinceLastSeen = 999f;               // start as "not seeing"
+
+    // anti-stuck while patrolling
+    Vector3 lastPatrolPos;
+    float stuckTimer = 0f;
+    public float stuckMoveThreshold = 0.02f;      // how far he must move to count as "moving"
+    public float stuckTeleportTime = 2.0f;        // seconds stuck before teleport
 
     void Awake()
     {
@@ -73,6 +78,7 @@ public class EnemyPatrol : MonoBehaviour
             lookTarget = player;
 
         baseY = transform.position.y;
+        lastPatrolPos = transform.position;
 
         if (!visionLight)
             Debug.LogWarning("EnemyPatrol: no visionLight assigned, enemy will always see player.");
@@ -111,10 +117,12 @@ public class EnemyPatrol : MonoBehaviour
             Patrol();
         }
 
-        // 3) Just stopped chasing? snap to closest patrol point
+        // 3) Just stopped chasing? snap to closest patrol point (for direction)
         if (wasChasing && !isChasing)
         {
             SetNearestPatrolPoint();
+            lastPatrolPos = transform.position;
+            stuckTimer = 0f;
         }
     }
 
@@ -167,6 +175,7 @@ public class EnemyPatrol : MonoBehaviour
 
         return true;
     }
+
     // Move toward targetPos, but stop if a wall is in the way
     void MoveWithCollision(Vector3 targetPos, float speed)
     {
@@ -239,9 +248,8 @@ public class EnemyPatrol : MonoBehaviour
             );
         }
 
-        // 2) Move toward the player, but stop at walls
+        // Move toward the player, but stop at walls
         MoveWithCollision(targetPos, chaseSpeed);
-
     }
 
     // ---------------------- PATROL ----------------------
@@ -288,14 +296,18 @@ public class EnemyPatrol : MonoBehaviour
         // Move toward the waypoint, but stop at walls
         MoveWithCollision(targetPos, patrolSpeed);
 
+        // check if we've become stuck while patrolling
+        CheckStuckOnPatrol();
     }
 
-    // pick nearest patrol point when we stop chasing
+    // pick nearest patrol point when we stop chasing / teleport
     void SetNearestPatrolPoint()
     {
         if (!HasPatrolPath) return;
 
         Vector3 currentPos = transform.position;
+        Vector3 origin = currentPos + Vector3.up * collisionHeight;
+
         float bestSqr = float.MaxValue;
         int bestIndex = currentPatrolIndex;
 
@@ -303,7 +315,27 @@ public class EnemyPatrol : MonoBehaviour
         {
             Vector3 p = patrolPoints[i].position;
             p.y = currentPos.y;
-            float sqr = (p - currentPos).sqrMagnitude;
+
+            Vector3 toPoint = p - currentPos;
+            float dist = toPoint.magnitude;
+            if (dist <= 0.01f)
+                continue;
+
+            // optional: skip points that are clearly behind a wall
+            bool blocked = Physics.SphereCast(
+                origin,
+                collisionRadius,
+                toPoint.normalized,
+                out RaycastHit hit,
+                dist,
+                obstacleMask,
+                QueryTriggerInteraction.Ignore
+            );
+
+            if (blocked)
+                continue;
+
+            float sqr = toPoint.sqrMagnitude;
             if (sqr < bestSqr)
             {
                 bestSqr = sqr;
@@ -312,5 +344,35 @@ public class EnemyPatrol : MonoBehaviour
         }
 
         currentPatrolIndex = bestIndex;
+    }
+
+    // if stuck too long while patrolling, teleport to patrol point
+    void CheckStuckOnPatrol()
+    {
+        float sqrMoved = (transform.position - lastPatrolPos).sqrMagnitude;
+
+        if (sqrMoved < stuckMoveThreshold * stuckMoveThreshold)
+        {
+            stuckTimer += Time.deltaTime;
+
+            if (stuckTimer >= stuckTeleportTime && HasPatrolPath)
+            {
+                SetNearestPatrolPoint();
+
+                Vector3 tp = patrolPoints[currentPatrolIndex].position;
+                tp.y = baseY;
+                transform.position = tp;
+
+                Debug.Log("EnemyPatrol: was stuck, teleported to patrol point " + currentPatrolIndex);
+
+                stuckTimer = 0f;
+                lastPatrolPos = transform.position;
+            }
+        }
+        else
+        {
+            stuckTimer = 0f;
+            lastPatrolPos = transform.position;
+        }
     }
 }
