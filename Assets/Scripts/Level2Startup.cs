@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class Level2Startup : MonoBehaviour
 {
@@ -62,10 +63,10 @@ public class Level2Startup : MonoBehaviour
     
     void CheckPlayer()
     {
-        PlayerMovement player = FindFirstObjectByType<PlayerMovement>();
+        PlayerController3D player = FindFirstObjectByType<PlayerController3D>();
         if (player == null)
         {
-            Debug.LogWarning("🎮 No PlayerMovement script found! Player may not work.");
+            Debug.LogWarning("🎮 No PlayerController3D script found! Player may not work.");
         }
         else
         {

@@ -66,7 +66,7 @@ public class PlayerController3D : MonoBehaviour
         targetMaxSpeed = walkSpeed;
 
         if (!powerManager)
-            powerManager = FindObjectOfType<PowerManager>();
+            powerManager = FindObjectOfType<PowerManager>(true);
 
         if (animator && upperBodyLayerIndex >= 0 && upperBodyLayerIndex < animator.layerCount)
             animator.SetLayerWeight(upperBodyLayerIndex, 0f);
@@ -103,6 +103,16 @@ public class PlayerController3D : MonoBehaviour
             bool isRunning = isMoving && sprinting;
             animator.SetBool(walkBool, isMoving && !sprinting);
             animator.SetBool(runBool, isRunning);
+            
+            // Handle footstep audio
+            if (isMoving && AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayFootstep();
+            }
+            else if (!isMoving && AudioManager.Instance != null)
+            {
+                AudioManager.Instance.StopFootstep();
+            }
         }
 
 

@@ -11,6 +11,7 @@ public class AudioManager : MonoBehaviour
     
     [Header("Background Music")]
     public AudioClip backgroundMusic;
+    public AudioClip mainMenuMusic;
     
     [Header("Sound Effects")]
     public AudioClip footstepSound;
@@ -162,5 +163,52 @@ public class AudioManager : MonoBehaviour
                 musicSource.UnPause();
             }
         }
+    }
+    
+    // Methods for main menu music
+    public void PlayMainMenuMusic()
+    {
+        if (mainMenuMusic != null && musicSource != null)
+        {
+            if (musicSource.clip != mainMenuMusic || !musicSource.isPlaying)
+            {
+                musicSource.clip = mainMenuMusic;
+                musicSource.Play();
+                Debug.Log("🎵 Playing main menu music");
+            }
+        }
+        else if (mainMenuMusic == null)
+        {
+            Debug.LogWarning("⚠️ No main menu music assigned to AudioManager!");
+        }
+    }
+    
+    public void PlayGameMusic()
+    {
+        if (backgroundMusic != null && musicSource != null)
+        {
+            if (musicSource.clip != backgroundMusic || !musicSource.isPlaying)
+            {
+                musicSource.clip = backgroundMusic;
+                musicSource.Play();
+                Debug.Log("🎵 Playing game music");
+            }
+        }
+        else if (backgroundMusic == null)
+        {
+            Debug.LogWarning("⚠️ No game music assigned to AudioManager!");
+        }
+    }
+    
+    public void SwitchToMainMenuMusic()
+    {
+        StopBackgroundMusic();
+        PlayMainMenuMusic();
+    }
+    
+    public void SwitchToGameMusic()
+    {
+        StopBackgroundMusic();
+        PlayGameMusic();
     }
 }

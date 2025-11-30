@@ -27,6 +27,13 @@ public class CharacterDeath : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
+        // Stop footstep sounds when character dies
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopFootstep();
+            Debug.Log("🔇 Stopped footsteps - character died");
+        }
+
         // Play death + freeze
         anim.SetTrigger("Die");
         if (mainCollider) mainCollider.enabled = false;

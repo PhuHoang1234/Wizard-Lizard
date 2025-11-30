@@ -36,6 +36,13 @@ public class EndLevel : MonoBehaviour
         if (panel != null)
             panel.SetActive(true);
 
+        // Stop footstep sounds when level ends
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopFootstep();
+            Debug.Log("🔇 Stopped footsteps - level completed!");
+        }
+
         Time.timeScale = 0f;
         Debug.Log("EndLevel: WIN!");
     }
@@ -43,12 +50,25 @@ public class EndLevel : MonoBehaviour
 
     public void Retry()
     {
+        // Stop footsteps before loading new scene
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopFootstep();
+        }
+        
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     public void MainMenu()
     {
+        // Stop footsteps before going to main menu
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopFootstep();
+            AudioManager.Instance.SwitchToMainMenuMusic();
+        }
+        
         Time.timeScale = 1f;
         SceneManager.LoadScene("MainMenu");
     }

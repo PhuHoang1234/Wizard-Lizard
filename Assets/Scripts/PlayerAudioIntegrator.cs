@@ -17,15 +17,15 @@ public class PlayerAudioIntegrator : MonoBehaviour
     public void IntegratePlayerAudio()
     {
         // Find all player movement scripts in the scene
-        PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        PlayerController3D[] players = FindObjectsByType<PlayerController3D>(FindObjectsSortMode.None);
         
         if (players.Length == 0)
         {
-            Debug.LogWarning("⚠️ No PlayerMovement scripts found in scene!");
+            Debug.LogWarning("⚠️ No PlayerController3D scripts found in scene!");
             return;
         }
         
-        foreach (PlayerMovement player in players)
+        foreach (PlayerController3D player in players)
         {
             ValidatePlayerAudioSetup(player);
         }
@@ -33,35 +33,25 @@ public class PlayerAudioIntegrator : MonoBehaviour
         Debug.Log($"✅ Player audio integration completed for {players.Length} player(s)");
     }
     
-    void ValidatePlayerAudioSetup(PlayerMovement player)
+    void ValidatePlayerAudioSetup(PlayerController3D player)
     {
         Debug.Log($"🔍 Checking player audio setup on: {player.gameObject.name}");
-        
-        // Check if footstep variables are properly set
-        if (player.enableFootsteps)
-        {
-            Debug.Log("✅ Footsteps enabled");
-        }
-        else
-        {
-            Debug.LogWarning($"⚠️ Footsteps disabled on {player.gameObject.name}");
-        }
         
         // Check if AudioManager is available
         if (AudioManager.Instance != null)
         {
-            Debug.Log("✅ AudioManager found - footstep integration ready");
+            Debug.Log("✅ AudioManager found - audio integration ready");
         }
         else
         {
-            Debug.LogWarning("⚠️ AudioManager not found - footsteps won't work!");
+            Debug.LogWarning("⚠️ AudioManager not found!");
         }
         
-        // Test footstep integration
+        // Test player audio
         TestPlayerAudio(player);
     }
     
-    void TestPlayerAudio(PlayerMovement player)
+    void TestPlayerAudio(PlayerController3D player)
     {
         // This method can be expanded to test audio integration
         Debug.Log($"🎵 Player '{player.gameObject.name}' audio integration validated");
@@ -71,25 +61,13 @@ public class PlayerAudioIntegrator : MonoBehaviour
     [ContextMenu("Fix Player Audio Issues")]
     public void FixPlayerAudioIssues()
     {
-        PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        PlayerController3D[] players = FindObjectsByType<PlayerController3D>(FindObjectsSortMode.None);
         
-        foreach (PlayerMovement player in players)
+        foreach (PlayerController3D player in players)
         {
-            // Ensure footsteps are enabled
-            if (!player.enableFootsteps)
-            {
-                player.enableFootsteps = true;
-                Debug.Log($"🔧 Enabled footsteps for {player.gameObject.name}");
-            }
-            
-            // Ensure reasonable footstep delay
-            if (player.footstepDelay <= 0f || player.footstepDelay > 2f)
-            {
-                player.footstepDelay = 0.4f;
-                Debug.Log($"🔧 Reset footstep delay to 0.4s for {player.gameObject.name}");
-            }
+            Debug.Log($"🔧 Player audio setup validated for {player.gameObject.name}");
         }
         
-        Debug.Log("✅ Player audio issues fixed!");
+        Debug.Log("✅ Player audio issues checked!");
     }
 }

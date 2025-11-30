@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 
 public class UniversalAudioSetup : MonoBehaviour
 {
@@ -84,15 +85,15 @@ public class UniversalAudioSetup : MonoBehaviour
     
     void CheckPlayerMovement()
     {
-        PlayerMovement player = FindFirstObjectByType<PlayerMovement>();
+        PlayerController3D player = FindFirstObjectByType<PlayerController3D>();
         if (player != null)
         {
             if (verboseLogging)
-                Debug.Log($"✅ Player movement found: {player.gameObject.name}");
+                Debug.Log($"✅ Player controller found: {player.gameObject.name}");
         }
         else
         {
-            Debug.LogWarning("⚠️ No PlayerMovement script found in this scene!");
+            Debug.LogWarning("⚠️ No PlayerController3D script found in this scene!");
         }
     }
     

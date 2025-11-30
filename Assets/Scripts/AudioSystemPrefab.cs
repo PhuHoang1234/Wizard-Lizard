@@ -104,12 +104,10 @@ public class AudioSystemPrefab : MonoBehaviour
         }
         
         // Test Player
-        PlayerMovement player = FindFirstObjectByType<PlayerMovement>();
+        PlayerController3D player = FindFirstObjectByType<PlayerController3D>();
         if (player != null)
         {
             Debug.Log($"✅ Player: FOUND ({player.gameObject.name})");
-            Debug.Log($"   - Footsteps enabled: {player.enableFootsteps}");
-            Debug.Log($"   - Footstep delay: {player.footstepDelay}s");
         }
         else
         {

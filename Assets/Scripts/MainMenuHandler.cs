@@ -3,10 +3,33 @@ using UnityEngine.SceneManagement;
 
 public class MainMenuHandler : MonoBehaviour
 {
+    [Header("Scene Management")]
     public string firstLevelName = "Level1";
+    
+    [Header("Audio")]
+    public MainMenuAudioController audioController;
+
+    void Start()
+    {
+        // Find audio controller if not assigned
+        if (audioController == null)
+        {
+            audioController = FindObjectOfType<MainMenuAudioController>(true);
+        }
+    }
 
     public void PlayGame()
     {
+        // Switch to game music before loading level
+        if (audioController != null)
+        {
+            audioController.OnPlayGameClicked();
+        }
+        else if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.SwitchToGameMusic();
+        }
+        
         Time.timeScale = 1f;
         SceneManager.LoadScene(firstLevelName);
     }
