@@ -39,16 +39,16 @@ public class PlayerController3D : MonoBehaviour
     public bool walkOnlyDuringCast = true;
 
     [Header("Magic")]
-    public PowerManager powerManager;   // drag your PowerManager object here
+    public PowerManager powerManager;   
 
-    // runtime
+  
     Rigidbody rb;
     Vector2 rawInput, filteredInput, filteredInputVel;
     float targetMaxSpeed, currentMaxSpeed, speedVelRef;
     Vector2 desiredVelXZ, velRefXZ, lastMoveDirXZ;
     float facingVel;
 
-    // casting timer
+  
     float castTimer = 0f;
 
     void Awake()
@@ -74,7 +74,7 @@ public class PlayerController3D : MonoBehaviour
 
     void Update()
     {
-        // ---------- movement input ----------
+
         rawInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
         if (rawInput.sqrMagnitude > 1f) rawInput.Normalize();
 
@@ -96,7 +96,7 @@ public class PlayerController3D : MonoBehaviour
         if (desiredVelXZ.sqrMagnitude > 0.0001f)
             lastMoveDirXZ = desiredVelXZ.normalized;
 
-        // ---------- animation booleans ----------
+
         if (animator)
         {
             bool isMoving = desiredVelXZ.sqrMagnitude > 0.0001f;
@@ -105,7 +105,7 @@ public class PlayerController3D : MonoBehaviour
             animator.SetBool(runBool, isRunning);
         }
 
-        // ---------- casting ----------
+
         HandleCastingInput();
         UpdateCastLayerWeight();
     }
@@ -147,14 +147,14 @@ public class PlayerController3D : MonoBehaviour
         }
     }
 
-    // ---------- casting helpers ----------
+
     void HandleCastingInput()
     {
         if (!animator || powerManager == null) return;
 
         if (Input.GetKeyDown(castKey))
         {
-            // ask PowerManager to cast (handles cooldown)
+
             if (powerManager.TryCastLightning(transform))
             {
                 animator.ResetTrigger(castTrigger);
@@ -182,7 +182,7 @@ public class PlayerController3D : MonoBehaviour
         animator.SetLayerWeight(upperBodyLayerIndex, next);
     }
 
-    // ---------- helper: SmoothDamp for Vector2 ----------
+
     static Vector2 SmoothDampVec2(
         Vector2 current, Vector2 target, ref Vector2 currentVelocity,
         float smoothTime, float maxSpeed, float deltaTime)

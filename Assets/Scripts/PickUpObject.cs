@@ -3,7 +3,6 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class PickupObject : MonoBehaviour
 {
-    // Other scripts can read this
     public bool HasBeenPickedUp { get; private set; }
 
     private Renderer[] renderers;
@@ -11,16 +10,14 @@ public class PickupObject : MonoBehaviour
 
     private void Awake()
     {
-        // Get all renderers (this object + children)
         renderers = GetComponentsInChildren<Renderer>();
 
         col = GetComponent<Collider>();
-        col.isTrigger = true;   // make this object a trigger
+        col.isTrigger = true;   
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        // Only the player can pick this up
         if (!other.CompareTag("Player"))
             return;
 

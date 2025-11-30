@@ -4,32 +4,32 @@ using UnityEngine;
 public class EnemyVisionAI : MonoBehaviour
 {
     [Header("References")]
-    public Transform player;          // drag Player here
-    public LayerMask obstacleMask;    // barrels, walls, pillar etc.
+    public Transform player;          
+    public LayerMask obstacleMask;   
 
     [Header("Vision")]
     public float viewDistance = 12f;
     [Range(0f, 180f)]
-    public float viewAngle = 45f;     // cone angle (total)
+    public float viewAngle = 45f;    
 
     [Header("Detection Times")]
-    public float alertTime = 0.5f;    // see player this long -> ALERT
-    public float timeToCatch = 1.2f;  // see player this long -> CAUGHT
-    public float loseAlertAfter = 1.5f; // hidden this long -> calm down
+    public float alertTime = 0.5f;    
+    public float timeToCatch = 1.2f; 
+    public float loseAlertAfter = 1.5f; 
 
     [Header("Scanning")]
-    public float rotateSpeed = 90f;   // normal scan speed (deg/sec)
+    public float rotateSpeed = 90f;   
     public float minPause = 0.3f;
     public float maxPause = 1.2f;
 
     [Header("Alert Behaviour")]
-    public float alertTurnSpeed = 45f; // how fast to slowly track the player
+    public float alertTurnSpeed = 45f; 
 
-    bool isChasing = false;   // final “caught” state
-    bool isAlerted = false;   // currently tracking you
+    bool isChasing = false;   
+    bool isAlerted = false;   
 
-    float visibleTimer = 0f;  // how long we’ve continuously seen the player
-    float hiddenTimer = 0f;   // how long we’ve continuously NOT seen the player
+    float visibleTimer = 0f;  
+    float hiddenTimer = 0f;   
 
     void Start()
     {
@@ -55,27 +55,23 @@ public class EnemyVisionAI : MonoBehaviour
 
         if (!isChasing)
         {
-            // 1) Enter alert if we’ve seen the player long enough
             if (!isAlerted && visibleTimer >= alertTime)
             {
                 isAlerted = true;
             }
 
-            // 2) If we stay in view even longer -> caught
             if (isAlerted && visibleTimer >= timeToCatch)
             {
                 isChasing = true;
                 OnPlayerCaught();
             }
 
-            // 3) If we were alert but lost sight for a while -> calm down
             if (isAlerted && hiddenTimer >= loseAlertAfter)
             {
                 isAlerted = false;
             }
         }
 
-        // While alert (but not fully caught) slowly track towards the player
         if (isAlerted && !isChasing)
         {
             RotateSlowlyTowardPlayer();
@@ -86,7 +82,7 @@ public class EnemyVisionAI : MonoBehaviour
     {
         while (!isChasing)
         {
-            bool doFastSweep = Random.value < 0.25f; // 25% chance
+            bool doFastSweep = Random.value < 0.25f;
 
             if (doFastSweep)
             {
@@ -136,7 +132,6 @@ public class EnemyVisionAI : MonoBehaviour
                 }
             }
 
-            // loop continues while !isChasing
         }
     }
 

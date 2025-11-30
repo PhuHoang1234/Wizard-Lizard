@@ -19,19 +19,16 @@ public class Level2Startup : MonoBehaviour
     
     void FixLevelIssues()
     {
-        // 1. Check AudioManager
+        
         CheckAudioManager();
         
-        // 2. Check Player
         CheckPlayer();
         
-        // 3. Check Enemies
         CheckEnemies();
         
-        // 4. Fix common collider issues
         FixColliders();
         
-        // 5. Fix duplicate audio listeners
+        // 5. Fix duplicate  listeners
         FixAudioListeners();
         
         // 6. Fix duplicate event systems

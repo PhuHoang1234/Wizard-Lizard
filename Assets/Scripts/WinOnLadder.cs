@@ -4,11 +4,11 @@ using UnityEngine.SceneManagement;
 public class WinOnLadder : MonoBehaviour
 {
     [Header("UI")]
-    public GameObject winPanel;     // your WinLevel UI panel
+    public GameObject winPanel;     
     public string playerTag = "Player";
 
     [Header("Scenes")]
-    public string mainMenuScene = "MainMenu";   // set this in Inspector if name is different
+    public string mainMenuScene = "MainMenu";   
 
     private void OnTriggerEnter(Collider other)
     {
@@ -17,24 +17,19 @@ public class WinOnLadder : MonoBehaviour
         if (winPanel != null)
             winPanel.SetActive(true);
 
-        // Pause game when you win
+
         Time.timeScale = 0f;
     }
-
-    // ---- UI BUTTON METHODS ----
-
-    // Called by Retry button
     public void Retry()
     {
-        Time.timeScale = 1f; // un-pause
+        Time.timeScale = 1f; 
         Scene current = SceneManager.GetActiveScene();
-        SceneManager.LoadScene(current.buildIndex);    // reload current level
+        SceneManager.LoadScene(current.buildIndex);    
     }
 
-    // Called by Main Menu button
     public void MainMenu()
     {
-        Time.timeScale = 1f; // un-pause
+        Time.timeScale = 1f; 
         SceneManager.LoadScene(mainMenuScene);
     }
 }
