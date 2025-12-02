@@ -7723,7 +7723,7 @@ MonoBehaviour:
   lightningLine: {fileID: 642676086}
   lineShowTime: 0.08
   damage: 20
-  hasLightning: 0
+  hasLightning: 1
 --- !u!4 &1203797999
 Transform:
   m_ObjectHideFlags: 0
@@ -10880,6 +10880,7 @@ MonoBehaviour:
   sfxSource: {fileID: 0}
   footstepSource: {fileID: 0}
   backgroundMusic: {fileID: 8300000, guid: 5a30361ba46dc4d05ab5906ef570be1f, type: 3}
+  mainMenuMusic: {fileID: 0}
   footstepSound: {fileID: 8300000, guid: f03c04a698a644c08bd96b69e3eec380, type: 3}
   pickupSound: {fileID: 0}
   doorSound: {fileID: 8300000, guid: b48746036e7054aa9a43aae3abbcc951, type: 3}
@@ -15012,6 +15013,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Wizard
       objectReference: {fileID: 0}
+    - target: {fileID: 6670086922414450215, guid: f68ce7e1f8c27144b8dc138a414d9659, type: 3}
+      propertyPath: powerManager
+      value: 
+      objectReference: {fileID: 1203797998}
     - target: {fileID: 7582834065244897508, guid: f68ce7e1f8c27144b8dc138a414d9659, type: 3}
       propertyPath: panel
       value: 

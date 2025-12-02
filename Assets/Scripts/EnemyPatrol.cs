@@ -266,6 +266,12 @@ public class EnemyPatrol : MonoBehaviour
             return;
         }
 
+        // Additional safety check to prevent array access errors
+        if (currentPatrolIndex >= patrolPoints.Length)
+        {
+            currentPatrolIndex = 0;
+        }
+
         Transform patrolTarget = patrolPoints[currentPatrolIndex];
 
         Vector3 currentPos = transform.position;
@@ -359,11 +365,15 @@ public class EnemyPatrol : MonoBehaviour
             {
                 SetNearestPatrolPoint();
 
-                Vector3 tp = patrolPoints[currentPatrolIndex].position;
-                tp.y = baseY;
-                transform.position = tp;
+                // Additional safety check before accessing patrolPoints
+                if (currentPatrolIndex < patrolPoints.Length)
+                {
+                    Vector3 tp = patrolPoints[currentPatrolIndex].position;
+                    tp.y = baseY;
+                    transform.position = tp;
 
-                Debug.Log("EnemyPatrol: was stuck, teleported to patrol point " + currentPatrolIndex);
+                    Debug.Log("EnemyPatrol: was stuck, teleported to patrol point " + currentPatrolIndex);
+                }
 
                 stuckTimer = 0f;
                 lastPatrolPos = transform.position;

@@ -34,11 +34,12 @@ public class PlayerHealth : MonoBehaviour
     {
         Debug.Log("Player Died! Respawning...");
         
-        // Stop footstep sounds when player dies
+        // Stop all audio when player dies
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.StopFootstep();
-            Debug.Log("🔇 Stopped footsteps - player died");
+            AudioManager.Instance.StopBackgroundMusic();
+            Debug.Log("🔇 Stopped all audio - player died");
         }
         
         // Game Over UI or fade

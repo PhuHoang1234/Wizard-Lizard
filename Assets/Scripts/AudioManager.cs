@@ -41,8 +41,43 @@ public class AudioManager : MonoBehaviour
 
     private void Start()
     {
+        // Load audio files from Resources if not assigned
+        LoadAudioFilesFromResources();
+        
         // Start playing background music
         PlayBackgroundMusic();
+    }
+
+    private void LoadAudioFilesFromResources()
+    {
+        // Load background music if not assigned - use the correct Level 1 music
+        if (backgroundMusic == null)
+        {
+            backgroundMusic = Resources.Load<AudioClip>("Music/ambient-soundscapes-007-space-atmosphere-304974");
+            
+            if (backgroundMusic != null)
+            {
+                Debug.Log("✅ Loaded Level 1 ambient music: " + backgroundMusic.name);
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ Could not load Level 1 ambient music from Resources/Music/ambient-soundscapes-007-space-atmosphere-304974");
+            }
+        }
+        
+        // Load footstep sound if not assigned
+        if (footstepSound == null)
+        {
+            footstepSound = Resources.Load<AudioClip>("Audio/SFX/Footsteps/concrete-footsteps-6752");
+            if (footstepSound != null)
+            {
+                Debug.Log("✅ Loaded footstep sound: " + footstepSound.name);
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ Could not load footstep sound from Resources/Audio/SFX/Footsteps/concrete-footsteps-6752");
+            }
+        }
     }
 
     private void SetupAudioSources()
