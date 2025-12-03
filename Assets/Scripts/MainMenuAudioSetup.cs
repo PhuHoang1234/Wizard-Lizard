@@ -60,10 +60,14 @@ public class MainMenuAudioSetup : MonoBehaviour
             // Assign the main menu music
             AudioManager.Instance.mainMenuMusic = mainMenuMusicClip;
             
+            // Disable footsteps for main menu
+            AudioManager.Instance.DisableFootsteps();
+            
             // Play the main menu music
             AudioManager.Instance.SwitchToMainMenuMusic();
             
             Debug.Log("🎶 Main menu music should now be playing!");
+            Debug.Log("🏠 Footsteps disabled for main menu");
         }
         else if (mainMenuMusicClip == null)
         {

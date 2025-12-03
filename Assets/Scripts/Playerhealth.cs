@@ -37,8 +37,7 @@ public class PlayerHealth : MonoBehaviour
         // Stop all audio when player dies
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.StopFootstep();
-            AudioManager.Instance.StopBackgroundMusic();
+            AudioManager.Instance.StopAllAudio();
             Debug.Log("🔇 Stopped all audio - player died");
         }
         
@@ -50,6 +49,15 @@ public class PlayerHealth : MonoBehaviour
     {
         currentHealth = maxHealth;
         if (respawnPoint) transform.position = respawnPoint.position;
+        
+        // Re-enable footsteps and restart game music after respawn
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.EnableFootsteps();
+            AudioManager.Instance.ForceRestartGameAudio();
+            Debug.Log("👟 Footsteps re-enabled and game music force restarted after respawn");
+        }
+        
         // Revive effects
     }
 }

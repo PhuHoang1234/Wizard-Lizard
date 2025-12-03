@@ -108,6 +108,7 @@ public class PlayerController3D : MonoBehaviour
             if (isMoving && AudioManager.Instance != null)
             {
                 AudioManager.Instance.PlayFootstep();
+                // Debug.Log($"🦶 Trying to play footstep - Moving: {isMoving}");
             }
             else if (!isMoving && AudioManager.Instance != null)
             {

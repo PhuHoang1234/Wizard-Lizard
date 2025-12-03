@@ -67,6 +67,13 @@ public class BossIntroTrigger : MonoBehaviour
         {
             if (s != null) s.enabled = false;
         }
+        
+        // 1.5) Disable footsteps during cutscene
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.DisableFootsteps();
+            Debug.Log("🎬 Footsteps disabled for boss cutscene");
+        }
 
         // 2) Switch cameras + show bars
         if (gameplayCamera) gameplayCamera.enabled = false;
@@ -92,6 +99,13 @@ public class BossIntroTrigger : MonoBehaviour
         foreach (var s in playerScriptsToDisable)
         {
             if (s != null) s.enabled = true;
+        }
+        
+        // 5.5) Re-enable footsteps after cutscene
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.EnableFootsteps();
+            Debug.Log("👟 Footsteps re-enabled after boss cutscene");
         }
 
         // 6) Restore Rigidbody state

@@ -27,8 +27,9 @@ public class MainMenuAudioController : MonoBehaviour
             // Switch to main menu music
             AudioManager.Instance.SwitchToMainMenuMusic();
             
-            // Stop footsteps (in case player came from a game level)
-            AudioManager.Instance.StopFootstep();
+            // Disable footsteps completely (in case player came from a game level)
+            AudioManager.Instance.DisableFootsteps();
+            Debug.Log("🏠 Footsteps disabled for main menu");
             
             Debug.Log("🎵 Main menu audio setup complete");
         }

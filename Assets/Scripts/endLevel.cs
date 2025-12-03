@@ -39,7 +39,7 @@ public class EndLevel : MonoBehaviour
         // Stop footstep sounds when level ends
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.StopFootstep();
+            AudioManager.Instance.DisableFootsteps();
             Debug.Log("🔇 Stopped footsteps - level completed!");
         }
 
@@ -62,11 +62,12 @@ public class EndLevel : MonoBehaviour
 
     public void MainMenu()
     {
-        // Stop footsteps before going to main menu
+        // Stop all audio before going to main menu
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.StopFootstep();
+            AudioManager.Instance.DisableFootsteps();
             AudioManager.Instance.SwitchToMainMenuMusic();
+            Debug.Log("🏠 Disabled footsteps before returning to main menu");
         }
         
         Time.timeScale = 1f;

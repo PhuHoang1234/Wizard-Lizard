@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class AudioManager : MonoBehaviour
 {
@@ -22,6 +23,9 @@ public class AudioManager : MonoBehaviour
     [Range(0f, 1f)] public float musicVolume = 0.7f;
     [Range(0f, 1f)] public float sfxVolume = 1f;
 
+    [Header("Audio Control")]
+    public bool footstepsEnabled = true; // Flag to control footstep playback
+
     private void Awake()
     {
         // Singleton pattern - ensure only one AudioManager exists
@@ -32,11 +36,30 @@ public class AudioManager : MonoBehaviour
             
             // Auto-create audio sources if not assigned
             SetupAudioSources();
+            
+            // Listen for scene changes
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
         else
         {
             Destroy(gameObject);
         }
+    }
+    
+    void OnDestroy()
+    {
+        // Unsubscribe from scene events
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+    
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log($"🔄 Scene loaded: {scene.name} - Restarting audio setup");
+        Debug.Log($"🔄 AudioManager Instance: {(Instance != null ? "Found" : "NULL")}");
+        Debug.Log($"🔄 Audio Sources - Music: {(musicSource != null ? "Found" : "NULL")}, Footsteps: {(footstepSource != null ? "Found" : "NULL")}");
+        
+        // Small delay to let everything initialize
+        Invoke(nameof(SetupSceneAudio), 0.2f);
     }
 
     private void Start()
@@ -44,8 +67,65 @@ public class AudioManager : MonoBehaviour
         // Load audio files from Resources if not assigned
         LoadAudioFilesFromResources();
         
-        // Start playing background music
-        PlayBackgroundMusic();
+        // Wait a moment for everything to load, then setup audio
+        Invoke(nameof(SetupSceneAudio), 0.1f);
+    }
+    
+    void SetupSceneAudio()
+    {
+        // Check what scene we're in and start appropriate audio
+        string sceneName = SceneManager.GetActiveScene().name;
+        
+        Debug.Log($"🎵 Setting up audio for scene: {sceneName}");
+        Debug.Log($"🎵 backgroundMusic: {(backgroundMusic != null ? backgroundMusic.name : "NULL")}");
+        Debug.Log($"🎵 musicSource: {(musicSource != null ? "Found" : "NULL")}");
+        
+        // Stop any current music first
+        if (musicSource != null && musicSource.isPlaying)
+        {
+            musicSource.Stop();
+            Debug.Log("🔇 Stopped current music");
+        }
+        
+        if (sceneName == "MainMenu")
+        {
+            // Main menu - play main menu music, disable footsteps
+            PlayMainMenuMusic();
+            DisableFootsteps();
+            Debug.Log("🏠 AudioManager: Main menu setup complete");
+        }
+        else
+        {
+            // Game level - play game music, enable footsteps
+            if (backgroundMusic != null)
+            {
+                PlayGameMusic();
+                Debug.Log("✅ Game music started");
+            }
+            else
+            {
+                Debug.LogWarning("❌ Cannot start game music - backgroundMusic is null!");
+                // Try to force load the music
+                LoadAudioFilesFromResources();
+                Invoke(nameof(RetryGameMusic), 0.1f);
+            }
+            
+            EnableFootsteps();
+            Debug.Log($"🎮 AudioManager: Game level setup complete for {sceneName}");
+        }
+    }
+    
+    void RetryGameMusic()
+    {
+        if (backgroundMusic != null)
+        {
+            PlayGameMusic();
+            Debug.Log("✅ Game music started after reload");
+        }
+        else
+        {
+            Debug.LogError("❌ Still no background music after reload!");
+        }
     }
 
     private void LoadAudioFilesFromResources()
@@ -132,7 +212,7 @@ public class AudioManager : MonoBehaviour
 
     public void PlayFootstep()
     {
-        if (footstepSound != null && footstepSource != null)
+        if (footstepSound != null && footstepSource != null && footstepsEnabled)
         {
             if (!footstepSource.isPlaying)
             {
@@ -157,6 +237,45 @@ public class AudioManager : MonoBehaviour
             footstepSource.Stop();
             Debug.Log("🛑 STOPPED footstep audio source!");
         }
+    }
+
+    public void StopAllAudio()
+    {
+        // Stop all audio sources
+        if (musicSource != null && musicSource.isPlaying)
+        {
+            musicSource.Stop();
+            Debug.Log("🔇 Stopped background music");
+        }
+        
+        if (footstepSource != null && footstepSource.isPlaying)
+        {
+            footstepSource.Stop();
+            Debug.Log("🔇 Stopped footstep audio");
+        }
+        
+        if (sfxSource != null && sfxSource.isPlaying)
+        {
+            sfxSource.Stop();
+            Debug.Log("🔇 Stopped SFX audio");
+        }
+        
+        // Disable footsteps to prevent restart
+        footstepsEnabled = false;
+        Debug.Log("🔇 ALL AUDIO STOPPED - Footsteps disabled");
+    }
+
+    public void EnableFootsteps()
+    {
+        footstepsEnabled = true;
+        Debug.Log("👟 Footsteps re-enabled");
+    }
+    
+    public void DisableFootsteps()
+    {
+        footstepsEnabled = false;
+        StopFootstep();
+        Debug.Log("🚫 Footsteps disabled");
     }
 
     public void PlaySFX(AudioClip clip)
@@ -245,5 +364,29 @@ public class AudioManager : MonoBehaviour
     {
         StopBackgroundMusic();
         PlayGameMusic();
+        
+        // Enable footsteps when entering gameplay
+        EnableFootsteps();
+        Debug.Log("🎮 Switched to game music and enabled footsteps");
+    }
+
+    public void ForceRestartGameAudio()
+    {
+        Debug.Log("🔄 Force restarting game audio...");
+        
+        // Stop everything first
+        if (musicSource != null)
+        {
+            musicSource.Stop();
+        }
+        
+        // Reload audio files
+        LoadAudioFilesFromResources();
+        
+        // Start game audio
+        PlayGameMusic();
+        EnableFootsteps();
+        
+        Debug.Log("✅ Game audio force restarted!");
     }
 }

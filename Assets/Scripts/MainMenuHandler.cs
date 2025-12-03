@@ -28,6 +28,9 @@ public class MainMenuHandler : MonoBehaviour
         else if (AudioManager.Instance != null)
         {
             AudioManager.Instance.SwitchToGameMusic();
+            // Enable footsteps for gameplay
+            AudioManager.Instance.EnableFootsteps();
+            Debug.Log("🎮 Enabled footsteps for Level 1");
         }
         
         Time.timeScale = 1f;
