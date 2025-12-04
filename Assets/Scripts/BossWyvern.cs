@@ -30,6 +30,11 @@ public class BossWyvernSimpleAI : MonoBehaviour
     public float chaseTurnSpeed = 360f;   // turning speed while chasing
     public float alertTurnSpeed = 120f;   // turning speed while just alert
 
+    [Header("Be controlled")]
+    public float beControlledTime = 2.0f;
+    float beControlledTimer = 0.0f;
+    bool isControlled = false;
+
     // internal state
     bool isAlerted = false;
     bool isChasing = false;
@@ -82,6 +87,17 @@ public class BossWyvernSimpleAI : MonoBehaviour
     void Update()
     {
         if (!player) return;
+
+        if (isControlled)
+        {
+            beControlledTimer -= Time.deltaTime;
+
+            if (beControlledTimer <= 0f)
+            {
+                EndControlled();
+            }
+            return;
+        }
 
         if (isChasing)
         {
@@ -276,5 +292,17 @@ public class BossWyvernSimpleAI : MonoBehaviour
         Vector3 rightDir = Quaternion.Euler(0f, viewAngle * 0.5f, 0f) * transform.forward;
         Gizmos.DrawLine(origin, origin + leftDir * viewDistance);
         Gizmos.DrawLine(origin, origin + rightDir * viewDistance);
+    }
+
+    // ───────────────────── Take lightning cast and be controlled ─────────────────────
+    public void BeControlled()
+    {
+        beControlledTimer = beControlledTime;
+        isControlled = true;
+    }
+
+    public void EndControlled()
+    {
+        isControlled = false;
     }
 }

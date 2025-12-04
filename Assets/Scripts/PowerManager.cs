@@ -185,6 +185,12 @@ public class PowerManager : MonoBehaviour
 
         Debug.Log("HandleEnemyKilled on " + enemyRoot.name);
 
+        var boss = enemyRoot.GetComponentInChildren<BossWyvernSimpleAI>();
+        if (boss)
+        {
+            boss.BeControlled();
+            return;
+        }
 
         var patrol = enemyRoot.GetComponentInChildren<EnemyPatrol>();
         if (patrol) patrol.enabled = false;
