@@ -12,7 +12,7 @@ public class PowerManager : MonoBehaviour
 
     [Header("Invisible")]
     public float invisibleCooldown = 5f;
-    public float invisibleDuration = 50.0f;
+    public float invisibleDuration = 15.0f;
     public bool isInvisible = false;
     Transform invisibilityCaster;
 
@@ -34,7 +34,7 @@ public class PowerManager : MonoBehaviour
 
     [Header("Unlocks")]
     public bool hasLightning = false;
-    public bool hasInvisible = true;
+    public bool hasInvisible = false;
     public bool hasDistraction = true;
 
     void Start()

@@ -3,7 +3,8 @@ using UnityEngine;
 public class Level1Intro : MonoBehaviour
 {
     [Header("UI")]
-    public GameObject introPanel;         
+    public GameObject introPanel;
+    public GameObject firstCastIntro;
 
     [Header("What to freeze")]
     public MonoBehaviour[] playerScripts; 
@@ -26,7 +27,9 @@ public class Level1Intro : MonoBehaviour
         if (introPanel != null)
             introPanel.SetActive(false);
 
-        
+        if (firstCastIntro != null)
+            firstCastIntro.SetActive(true);
+
         foreach (var s in playerScripts)
             if (s != null) s.enabled = true;
 
