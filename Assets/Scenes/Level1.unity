@@ -7726,8 +7726,13 @@ MonoBehaviour:
   invisibleCooldown: 5
   invisibleDuration: 10
   isInvisible: 0
+  distractionCooldown: 10
+  distractionDuration: 20
+  tailPrefab: {fileID: 1066484038389948865, guid: 78658dbd76d692d47920bc724056a909, type: 3}
+  mainCamera: {fileID: 1549898114}
   hasLightning: 1
   hasInvisible: 1
+  hasDistraction: 1
 --- !u!4 &1203797999
 Transform:
   m_ObjectHideFlags: 0
@@ -10751,6 +10756,17 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1463974818}
   m_SourcePrefab: {fileID: 100100000, guid: 51e531e3214cd034985d913aa3f10ba7, type: 3}
+--- !u!114 &1549898114 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5231162013686125529, guid: c52a08af72b353b4f8166dace5baf694, type: 3}
+  m_PrefabInstance: {fileID: 648540238967934369}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42553d5f2cbe2764ca3e2528250cba3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1557708392
 GameObject:
   m_ObjectHideFlags: 0

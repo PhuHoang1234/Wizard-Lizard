@@ -4,6 +4,12 @@ using UnityEngine.SceneManagement;
 public class Follow_player : MonoBehaviour
 {
     public Transform Player;
+    public Transform target;
+
+    void Start()
+    {
+        target = Player;
+    }
 
     void LateUpdate()
     {
@@ -14,6 +20,16 @@ public class Follow_player : MonoBehaviour
             offset = new Vector3(0, 30, 0);
         }
 
-        transform.position = Player.position + offset;
+        transform.position = target.position + offset;
+    }
+
+    public void SetTarget(Transform target)
+    {
+        this.target = target;
+    }
+
+    public void SetTarget()
+    {
+        target = Player;
     }
 }

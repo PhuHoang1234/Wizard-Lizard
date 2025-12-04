@@ -42,6 +42,7 @@ public class EnemyPatrol : MonoBehaviour
     float baseY;
     int currentPatrolIndex = 0;
     PlayerController3D playerController;
+    Transform chaseTarget;
 
 
     bool HasPatrolPath => patrolPoints != null && patrolPoints.Length > 0;
@@ -149,40 +150,59 @@ public class EnemyPatrol : MonoBehaviour
     // ---------------------- DETECTION ----------------------
     bool PlayerInsideLightCone()
     {
-        if (!player) return false;
+        string[] tags = { "Tail", "Player" };
 
-        if (playerController.powerManager.isInvisible) return false;
+        foreach (string tag in tags)
+        {
+            if (tag == "Player" && playerController.powerManager.isInvisible) continue;
+            GameObject[] objs = GameObject.FindGameObjectsWithTag(tag);
+            foreach (var obj in objs)
+            {
+                if (IsInsideLightCone(obj.transform))
+                {
+                    chaseTarget = obj.transform;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 
 
-        // no light = simple distance check
+    bool IsInsideLightCone(Transform target)
+    {
+        if (!target) return false;
+
+        // no light = simple distance
         if (!visionLight)
         {
-            Vector3 flat = player.position - transform.position;
+            Vector3 flat = target.position - transform.position;
             flat.y = 0f;
             return flat.magnitude < visionDistance;
         }
 
         Vector3 origin = visionLight.transform.position;
         Vector3 forward = visionLight.transform.forward;
-        Vector3 toPlayer = player.position - origin;
+        Vector3 toTarget = target.position - origin;
 
-        float dist = toPlayer.magnitude;
-        float maxDist = visionDistance > 0f ? visionDistance : visionLight.range;
+        float dist = toTarget.magnitude;
+        float maxDist = (visionDistance > 0f ? visionDistance : visionLight.range);
         if (dist > maxDist) return false;
 
         float halfAngle = (visionAngle > 0f ? visionAngle : visionLight.spotAngle) * 0.5f;
-        float angle = Vector3.Angle(forward, toPlayer);
+        float angle = Vector3.Angle(forward, toTarget);
         if (angle > halfAngle) return false;
 
-        // Raycast to check walls
-        if (Physics.Raycast(origin, toPlayer.normalized, out RaycastHit hit, dist, obstacleMask, QueryTriggerInteraction.Ignore))
+        if (Physics.Raycast(origin, toTarget.normalized, out RaycastHit hit, dist, obstacleMask, QueryTriggerInteraction.Ignore))
         {
-            if (!hit.collider.CompareTag("Player"))
+            if (hit.transform != target)
                 return false;
         }
 
         return true;
     }
+
 
     // Move toward targetPos, but stop if a wall is in the way
     void MoveWithCollision(Vector3 targetPos, float speed)
@@ -226,10 +246,10 @@ public class EnemyPatrol : MonoBehaviour
     // ---------------------- CHASE ----------------------
     void ChasePlayer()
     {
-        if (!player) return;
+        if (!chaseTarget) return;
 
         Vector3 currentPos = transform.position;
-        Vector3 targetPos = new Vector3(player.position.x, currentPos.y, player.position.z);
+        Vector3 targetPos = new Vector3(chaseTarget.position.x, currentPos.y, chaseTarget.position.z);
 
         Vector3 toTarget = targetPos - currentPos;
         float distance = toTarget.magnitude;

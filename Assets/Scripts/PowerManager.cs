@@ -14,15 +14,28 @@ public class PowerManager : MonoBehaviour
     public float invisibleCooldown = 5f;
     public float invisibleDuration = 50.0f;
     public bool isInvisible = false;
-    Transform caster;
+    Transform invisibilityCaster;
+
+    [Header("Distraction")]
+    public float distractionCooldown = 10f;
+    public float distractionDuration = 20f;
+    public GameObject tailPrefab;
+    public Follow_player mainCamera;
+    bool isControllingTail = false;
+    GameObject tail;
+    Transform distractionCaster;
+
 
     float lightningTimer = 0f;
     float invisibleTimer = 0f;
+    float distractionTimer = 0f;
     float invisibleDurationTimer = 0f;
+    float distractionDurationTimer = 0f;
 
     [Header("Unlocks")]
     public bool hasLightning = false;
     public bool hasInvisible = true;
+    public bool hasDistraction = true;
 
     void Start()
     {
@@ -48,6 +61,20 @@ public class PowerManager : MonoBehaviour
 
         if (invisibleTimer > 0f)
             invisibleTimer -= Time.deltaTime;
+
+        // distraction timers
+        if(tail != null)
+        {
+            distractionDurationTimer -= Time.deltaTime;
+
+            if (distractionDurationTimer <= 0)
+            {
+                EndDistraction(false);
+            }
+        }
+
+        if (distractionTimer > 0f)
+            distractionTimer -= Time.deltaTime;
     }
 
     // ------------ Lightning -------------
@@ -222,7 +249,7 @@ public class PowerManager : MonoBehaviour
 
         isInvisible = true;
         invisibleDurationTimer = invisibleDuration;
-        this.caster = caster;
+        this.invisibilityCaster = caster;
 
         InvisibilityUtility.SetInvisible(caster, 0.0f);
 
@@ -231,18 +258,99 @@ public class PowerManager : MonoBehaviour
 
     void EndInvisibility()
     {
-        if (caster == null) return;
+        if (invisibilityCaster == null) return;
         isInvisible = false;
 
-        InvisibilityUtility.SetVisible(caster);
+        InvisibilityUtility.SetVisible(invisibilityCaster);
 
-        caster = null;
+        invisibilityCaster = null;
         InvisibleStartCooldown();
     }
 
     void InvisibleStartCooldown()
     {
         invisibleTimer = invisibleCooldown;
+    }
+
+
+    // ------------ Distraction -------------
+
+    public bool CanCastDistraction()
+    {
+        return hasDistraction && tail == null && !isControllingTail && distractionTimer <= 0f;
+    }
+
+    public bool TryCastDistraction(Transform caster, KeyCode releaseKey)
+    {
+        if (!CanCastDistraction())
+            return false;
+
+        distractionDurationTimer = distractionDuration;
+        CastDistraction(caster, releaseKey);
+        return true;
+    }
+
+    public void UnlockDistraction()
+    {
+        hasDistraction = true;
+        Debug.Log("Distraction unlocked!");
+    }
+
+    void CastDistraction(Transform caster, KeyCode releaseKey)
+    {
+        if (tail != null) return;
+
+        Vector3 spawnPos = caster.position + caster.forward * 3f;
+        tail = Instantiate(tailPrefab, spawnPos, Quaternion.identity);
+        tail.SetActive(true);
+        TailObject to = tail.GetComponent<TailObject>();
+        to.powerManager = caster.GetComponent<PlayerController3D>().powerManager;
+        to.releaseKey = releaseKey;
+
+        PlayerController3D player = caster.GetComponent<PlayerController3D>();
+        player.canControl = false;
+        to.canControl = true;
+        mainCamera.SetTarget(tail.transform);
+
+        distractionCaster = caster;
+
+        Debug.Log("Distraction");
+    }
+
+    public void TailReleased()
+    {
+        PlayerCanBeControlledAgain();
+    }
+
+    public void TailPicked(bool isPlayerPickTail)
+    {
+        if (tail == null) return;
+
+        EndDistraction(isPlayerPickTail);
+    }
+
+    void EndDistraction(bool isPlayerPickTail)
+    {
+        PlayerCanBeControlledAgain();
+        tail = null;
+        distractionCaster = null;
+
+        DistractionStartCooldown(isPlayerPickTail);
+    }
+
+    void PlayerCanBeControlledAgain()
+    {
+        PlayerController3D player = distractionCaster.GetComponent<PlayerController3D>();
+        player.canControl = true;
+
+        if(tail != null) tail.GetComponent<TailObject>().canControl = false;
+
+        mainCamera.SetTarget();
+    }
+
+    void DistractionStartCooldown(bool isPlayerPickTail)
+    {
+        distractionTimer = isPlayerPickTail? 0 : distractionCooldown;
     }
 
 }

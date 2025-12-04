@@ -25,6 +25,7 @@ public class PlayerController3D : MonoBehaviour
     public KeyCode sprintKey = KeyCode.LeftShift;
     public KeyCode castKey = KeyCode.F;
     public KeyCode invisibleKey = KeyCode.R;
+    public KeyCode distractionKey = KeyCode.E;
 
 
     [Header("Animation (Locomotion)")]
@@ -41,7 +42,8 @@ public class PlayerController3D : MonoBehaviour
     public bool walkOnlyDuringCast = true;
 
     [Header("Magic")]
-    public PowerManager powerManager;   
+    public PowerManager powerManager;
+    public bool canControl = true;
 
   
     Rigidbody rb;
@@ -76,7 +78,7 @@ public class PlayerController3D : MonoBehaviour
 
     void Update()
     {
-
+        if (!canControl) return;
         rawInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
         if (rawInput.sqrMagnitude > 1f) rawInput.Normalize();
 
@@ -180,6 +182,17 @@ public class PlayerController3D : MonoBehaviour
         {
 
             if (powerManager.TryCastInvisible(transform))
+            {
+                animator.ResetTrigger(castTrigger);
+                animator.SetTrigger(castTrigger);
+                castTimer = castDuration;
+            }
+        }
+
+        if (Input.GetKeyDown(distractionKey))
+        {
+
+            if (powerManager.TryCastDistraction(transform, distractionKey))
             {
                 animator.ResetTrigger(castTrigger);
                 animator.SetTrigger(castTrigger);
