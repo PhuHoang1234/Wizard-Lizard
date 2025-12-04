@@ -41,6 +41,8 @@ public class EnemyPatrol : MonoBehaviour
     Rigidbody rb;
     float baseY;
     int currentPatrolIndex = 0;
+    PlayerController3D playerController;
+
 
     bool HasPatrolPath => patrolPoints != null && patrolPoints.Length > 0;
 
@@ -82,6 +84,9 @@ public class EnemyPatrol : MonoBehaviour
 
         if (!visionLight)
             Debug.LogWarning("EnemyPatrol: no visionLight assigned, enemy will always see player.");
+
+        playerController = player.GetComponent<PlayerController3D>();
+
     }
 
     void Update()
@@ -145,6 +150,9 @@ public class EnemyPatrol : MonoBehaviour
     bool PlayerInsideLightCone()
     {
         if (!player) return false;
+
+        if (playerController.powerManager.isInvisible) return false;
+
 
         // no light = simple distance check
         if (!visionLight)

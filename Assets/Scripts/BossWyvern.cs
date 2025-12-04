@@ -36,6 +36,8 @@ public class BossWyvernSimpleAI : MonoBehaviour
     float visibleTimer = 0f;
     float hiddenTimer = 0f;
     Coroutine scanRoutine;
+    PlayerController3D playerController;
+
 
     void Awake()
     {
@@ -47,6 +49,9 @@ public class BossWyvernSimpleAI : MonoBehaviour
 
         if (!anim)
             anim = GetComponent<Animator>();
+
+        playerController = player.GetComponent<PlayerController3D>();
+
     }
 
     // This script is disabled at start.
@@ -202,6 +207,8 @@ public class BossWyvernSimpleAI : MonoBehaviour
     // ───────────────────── Vision ─────────────────────
     bool CanSeePlayer()
     {
+        if (playerController.powerManager.isInvisible) return false;
+
         Vector3 origin = transform.position + Vector3.up * 1.5f; // eye height
         Vector3 toPlayer = player.position - origin;
         float distance = toPlayer.magnitude;

@@ -192,6 +192,7 @@ MonoBehaviour:
   facingSmoothTime: 0.08
   sprintKey: 304
   castKey: 102
+  invisibleKey: 114
   animator: {fileID: 9060186778668937873}
   walkBool: Walk
   runBool: Run
@@ -386,7 +387,11 @@ MonoBehaviour:
   lightningLine: {fileID: 5085614212443875548}
   lineShowTime: 0.08
   damage: 0
+  invisibleCooldown: 5
+  invisibleDuration: 10
+  isInvisible: 0
   hasLightning: 0
+  hasInvisible: 1
 --- !u!1001 &7634855527948343847
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -7723,7 +7723,11 @@ MonoBehaviour:
   lightningLine: {fileID: 642676086}
   lineShowTime: 0.08
   damage: 20
+  invisibleCooldown: 5
+  invisibleDuration: 10
+  isInvisible: 0
   hasLightning: 1
+  hasInvisible: 1
 --- !u!4 &1203797999
 Transform:
   m_ObjectHideFlags: 0
@@ -10886,6 +10890,7 @@ MonoBehaviour:
   doorSound: {fileID: 8300000, guid: b48746036e7054aa9a43aae3abbcc951, type: 3}
   musicVolume: 0.15
   sfxVolume: 0.85
+  footstepsEnabled: 1
 --- !u!4 &1583131032
 Transform:
   m_ObjectHideFlags: 0
@@ -15021,6 +15026,10 @@ PrefabInstance:
       propertyPath: panel
       value: 
       objectReference: {fileID: 1008036057}
+    - target: {fileID: 8842471750463201655, guid: f68ce7e1f8c27144b8dc138a414d9659, type: 3}
+      propertyPath: invisibleDuration
+      value: 10
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

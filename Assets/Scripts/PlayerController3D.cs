@@ -24,6 +24,8 @@ public class PlayerController3D : MonoBehaviour
     [Header("Keys")]
     public KeyCode sprintKey = KeyCode.LeftShift;
     public KeyCode castKey = KeyCode.F;
+    public KeyCode invisibleKey = KeyCode.R;
+
 
     [Header("Animation (Locomotion)")]
     public Animator animator;
@@ -167,6 +169,17 @@ public class PlayerController3D : MonoBehaviour
         {
 
             if (powerManager.TryCastLightning(transform))
+            {
+                animator.ResetTrigger(castTrigger);
+                animator.SetTrigger(castTrigger);
+                castTimer = castDuration;
+            }
+        }
+
+        if (Input.GetKeyDown(invisibleKey))
+        {
+
+            if (powerManager.TryCastInvisible(transform))
             {
                 animator.ResetTrigger(castTrigger);
                 animator.SetTrigger(castTrigger);
