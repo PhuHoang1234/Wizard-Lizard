@@ -37,7 +37,6 @@ public class TailObject : MonoBehaviour
     {
         if (isReleased)
         {
-            Debug.Log("111111111111111111111111111111111111111111111111111111111");
             if (other.CompareTag("Player")) powerManager.TailPicked(true);
             else powerManager.TailPicked(false);
             isReleased = false;
@@ -45,7 +44,6 @@ public class TailObject : MonoBehaviour
         }
         else
         {
-            Debug.Log("2222222222222222222222222222222222222222222222222222222222222222");
             if (other.CompareTag("Enemy"))
             {
                 powerManager.TailPicked(false);

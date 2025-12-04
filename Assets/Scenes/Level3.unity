@@ -263,6 +263,14 @@ PrefabInstance:
       value: Wizard
       objectReference: {fileID: 0}
     - target: {fileID: 8842471750463201655, guid: f68ce7e1f8c27144b8dc138a414d9659, type: 3}
+      propertyPath: mainCamera
+      value: 
+      objectReference: {fileID: 231064870}
+    - target: {fileID: 8842471750463201655, guid: f68ce7e1f8c27144b8dc138a414d9659, type: 3}
+      propertyPath: tailPrefab
+      value: 
+      objectReference: {fileID: 1066484038389948865, guid: 78658dbd76d692d47920bc724056a909, type: 3}
+    - target: {fileID: 8842471750463201655, guid: f68ce7e1f8c27144b8dc138a414d9659, type: 3}
       propertyPath: hasLightning
       value: 1
       objectReference: {fileID: 0}
@@ -795,6 +803,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Player: {fileID: 608304552}
+  target: {fileID: 0}
 --- !u!64 &231064871
 MeshCollider:
   m_ObjectHideFlags: 0

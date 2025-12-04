@@ -37,6 +37,7 @@ public class BossWyvernSimpleAI : MonoBehaviour
     float hiddenTimer = 0f;
     Coroutine scanRoutine;
     PlayerController3D playerController;
+    Transform chaseTarget;
 
 
     void Awake()
@@ -84,6 +85,7 @@ public class BossWyvernSimpleAI : MonoBehaviour
 
         if (isChasing)
         {
+            DecideTarget();
             ChasePlayer();
             return;
         }
@@ -172,13 +174,13 @@ public class BossWyvernSimpleAI : MonoBehaviour
 
     void ChasePlayer()
     {
-        Vector3 toPlayer = player.position - transform.position;
-        toPlayer.y = 0f;
+        Vector3 toTarget = chaseTarget.position - transform.position;
+        toTarget.y = 0f;
 
-        if (toPlayer.sqrMagnitude < 0.0001f)
+        if (toTarget.sqrMagnitude < 0.0001f)
             return;
 
-        Vector3 dir = toPlayer.normalized;
+        Vector3 dir = toTarget.normalized;
 
         Quaternion targetRot = Quaternion.LookRotation(dir);
         transform.rotation = Quaternion.RotateTowards(
@@ -202,6 +204,19 @@ public class BossWyvernSimpleAI : MonoBehaviour
             targetRot,
             alertTurnSpeed * Time.deltaTime
         );
+    }
+
+    void DecideTarget()
+    {
+        GameObject[] objs = GameObject.FindGameObjectsWithTag("Tail");
+
+        foreach (var obj in objs)
+        {
+            chaseTarget = obj.transform;
+            return;
+        }
+
+        chaseTarget = player;
     }
 
     // ───────────────────── Vision ─────────────────────
